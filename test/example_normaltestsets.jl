@@ -1,5 +1,5 @@
 using Base.Test
-
+using Base.Threads
 
 @testset "Math" begin 
 
@@ -32,4 +32,9 @@ using Base.Test
         @test 1 == rand(2,2)\rand(4,4) # deep error
 
     end
+
+    @testset "using function from a module" begin
+        @test nthreads()>0
+    end
+
 end
