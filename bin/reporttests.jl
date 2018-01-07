@@ -4,7 +4,7 @@ testfilename = shift!(ARGS)
 
 #testfile_str = String(read(testfilename))
 
-"""
+script = """
 using Base.Test
 using TestReports
 ts = @testset ReportingTestSet "" begin
@@ -14,7 +14,6 @@ end
 open("testlog.xml","w") do fh
     println(fh, ts)
 end
-""" |> include_string
+"""
 
-
-
+run(`$(JULIA_HOME)/julia -e $script`)
