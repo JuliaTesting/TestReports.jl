@@ -16,4 +16,4 @@ open("testlog.xml","w") do fh
 end
 """
 
-run(`$(JULIA_HOME)/julia -e $script`)
+run(`$(Base.julia_cmd()) -e $script`)

@@ -11,5 +11,5 @@ export ReportingTestSet
 
 include("./testsets.jl")
 include("to_xml.jl")
-
+include("runner.jl")
 end # module

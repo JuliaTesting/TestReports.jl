@@ -31,6 +31,11 @@ julia bin/reporttests.jl tests/runtests.jl
 Replacing `/tests/runtests.jl` with the path to your testfile.
 This script creates a file `testlog.xml` in the current directory.
 
+### Testing packages
+
+You can use `TestReports.test("pkgname")` just like you would use `Pkg.test("pkgname")`.
+It creates a `testlog.xml` file in the current directory containing the results.
+
 
 ### Using directly
 I actually don't recommend using this directly in your tests.
