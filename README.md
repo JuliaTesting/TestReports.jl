@@ -20,3 +20,25 @@ There are also some limitations with the information that is provided, this is r
 We (the JuliaLang community) are working on that.
 
 ### Runner Script
+
+`bin/reporttests.jl` is a script that runs tests and reports the results.
+Use it via:
+
+```
+julia bin/reporttests.jl tests/runtests.jl
+```
+
+Replacing `/tests/runtests.jl` with the path to your testfile.
+This script creates a file `testlog.xml` in the current directory.
+
+
+### Using directly
+I actually don't recommend using this directly in your tests.
+It is more flexible to just keep using the default testset type,
+and then use something like the Runner script to generate a wrapper of your tests with this testset around it.
+
+### Using with named testset types
+I don't know how well this will work with named testset types.
+If they act like the DefaultTestSet then everything should be fine.
+But if they don't push themselves on to their parents testsets when the fininish then we will not be able to see their results.
+
