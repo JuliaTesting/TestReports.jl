@@ -19,6 +19,45 @@ So we flatten all the results down for the report.
 There are also some limitations with the information that is provided, this is relatating to issues with `Base.Test`.
 We (the JuliaLang community) are working on that.
 
+## Example of Use
+Below is a screen shot of TestReports being used with [GoCD](https://github.com/gocd/gocd/),
+to report an test failure in []DataDepsGenerators.jl](https://github.com/oxinabox/DataDepsGenerators.jl/).
+
+![Screenshot of GoCD web-interface showing failing tests](docs/imgs/FailingTests.PNG)
+
+The corresponding `testlog.xml` file is below.
+(After pretty printing)
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="/UCI" id="now" tests="7" failures="1" errors="0">
+  <testsuite name="" id="_id_" tests="1" failures="0" errors="0">
+    <testcase name="pass (info lost)" id="_testcase_id_"/>
+  </testsuite>
+  <testsuite name="" id="_id_" tests="1" failures="0" errors="0">
+    <testcase name="pass (info lost)" id="_testcase_id_"/>
+  </testsuite>
+  <testsuite name="" id="_id_" tests="1" failures="0" errors="0">
+    <testcase name="pass (info lost)" id="_testcase_id_"/>
+  </testsuite>
+  <testsuite name="" id="_id_" tests="1" failures="0" errors="0">
+    <testcase name="pass (info lost)" id="_testcase_id_"/>
+  </testsuite>
+  <testsuite name="" id="_id_" tests="1" failures="0" errors="0">
+    <testcase name="pass (info lost)" id="_testcase_id_"/>
+  </testsuite>
+  <testsuite name="ForestFires" id="_id_" tests="2" failures="1" errors="0">
+    <testcase name="contains(registration_block, &quot;A Data Mining Approach to Predict Forest Fires using Meteorological Data&quot;)" id="_testcase_id_">
+      <failure message="nothing" type="test">Test Failed
+  Expression: contains(registration_block, "A Data Mining Approach to Predict Forest Fires using Meteorological Data")</failure>
+    </testcase>
+    <testcase name="pass (info lost)" id="_testcase_id_"/>
+  </testsuite>
+</testsuites>
+```
+
+## Manual
+
 ### Runner Script
 
 `bin/reporttests.jl` is a script that runs tests and reports the results.
