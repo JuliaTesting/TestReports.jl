@@ -84,7 +84,7 @@ function report(ts::AbstractTestSet)
 
     xdoc = XMLDocument()
     root = setroot!(xdoc, testsuites_xml(ts.description,
-                                         string(now),
+                                         "_id_",
                                          total_ntests,
                                          total_nfails,
                                          total_nerrors,

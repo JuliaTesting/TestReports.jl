@@ -1,2 +1,2 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="blah/a" id="now" tests="1" failures="0" errors="0"><testsuite name="" id="_id_" tests="1" failures="0" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite></testsuites>
+<testsuites name="blah/a" id="_id_" tests="1" failures="0" errors="0"><testsuite name="" id="_id_" tests="1" failures="0" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite></testsuites>

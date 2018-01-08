@@ -2,13 +2,15 @@ using TestReports
 using Base.Test
 using ReferenceTests
 
+"Strip the filenames from the string, so that the reference strings work on different computers"
+strip_filepaths(str) = replace(str, r" at .*\d+$"m, "")
 
 @testset "SingleNest" begin
-    @test_reference "references/singlenest.txt" readstring(`$(Base.julia_cmd()) -e "using Base.Test; using TestReports; (@testset ReportingTestSet \"blah\" begin @testset \"a\" begin @test 1 ==1 end end) |> report |> print"`)
+    @test_reference "references/singlenest.txt" readstring(`$(Base.julia_cmd()) -e "using Base.Test; using TestReports; (@testset ReportingTestSet \"blah\" begin @testset \"a\" begin @test 1 ==1 end end) |> report |> print"`) |> strip_filepaths
 end
 
 @testset "Complex Example" begin
-    @test_reference "references/complexexample.txt" readstring(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`)
+    @test_reference "references/complexexample.txt" readstring(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`) |> strip_filepaths
 end
 
 
