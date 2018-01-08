@@ -12,8 +12,9 @@ ts = @testset ReportingTestSet "" begin
 end
 
 open("testlog.xml","w") do fh
-    println(fh, ts)
+    print(fh, report(ts))
 end
+exit(any_problems(ts))
 """
 
 run(`$(Base.julia_cmd()) -e $script`)

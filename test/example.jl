@@ -3,4 +3,4 @@ using TestReports
 
 (@testset ReportingTestSet "Example" begin
     include("example_normaltestsets.jl")
-end) |> println
+end) |> report |> println

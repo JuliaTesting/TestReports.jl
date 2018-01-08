@@ -63,7 +63,14 @@ end
 
 #####################
 
-function xml_report(ts::AbstractTestSet)
+"""
+    report(ts)
+
+Will produce an `XMLDocument` that contains a report about the testset's results.
+In theory works on many kinds of testsets.
+Primarily intended for use on `ReportingTestSet`s.
+"""
+function report(ts::AbstractTestSet)
     total_ntests = 0
     total_nfails = 0
     total_nerrors = 0

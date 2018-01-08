@@ -22,8 +22,27 @@ function finish(ts::ReportingTestSet)
     # We are the top level, lets do this
     #to_xml(ts, Val(0))
     flatten_results!(ts)
-    xml_report(ts)
 end
+
+#############
+
+"""
+    any_problems(ts)
+
+Checks a testset to see if there were any problems.
+Note that unlike the `DefaultTestSet`, the `ReportingTestSet`
+does not throw an exception on a failure.
+Thus to set the exit code you should check it using `exit(any_problems(top_level_testset))`
+"""
+any_problems(ts::AbstractTestSet) =  any(any_problems.(ts.results))
+any_problems(::Pass) = false
+any_problems(::Fail) = true
+any_problems(::Broken) = false
+any_problems(::Error) = true
+
+######################################
+# result flattening
+
 
 """
 Returns a flat structure 2 deep, of Testset->Result
