@@ -16,7 +16,7 @@ We (the JuliaLang community) are working on that.
 
 ## Example of Use
 Below is a screen shot of TestReports being used with [GoCD](https://github.com/gocd/gocd/),
-to report an test failure in []DataDepsGenerators.jl](https://github.com/oxinabox/DataDepsGenerators.jl/).
+to report an test failure in [DataDepsGenerators.jl](https://github.com/oxinabox/DataDepsGenerators.jl/).
 
 ![Screenshot of GoCD web-interface showing failing tests](docs/imgs/FailingTests.PNG)
 
