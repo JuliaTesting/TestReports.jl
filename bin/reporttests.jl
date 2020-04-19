@@ -1,11 +1,11 @@
 #!julia
 
-testfilename = shift!(ARGS)
+testfilename = popfirst!(ARGS)
 
 #testfile_str = String(read(testfilename))
 
 script = """
-using Base.Test
+using Test
 using TestReports
 ts = @testset ReportingTestSet "" begin
     include("$testfilename")
