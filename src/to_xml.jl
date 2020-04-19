@@ -8,7 +8,7 @@ end
 
 function testsuites_xml(name, id, ntests, nfails, nerrors, x_children)
     x_testsuite = ElementNode("testsuites")
-    link!.(x_testsuite, x_children)
+    link!.(Ref(x_testsuite), x_children)
     set_attribute!(x_testsuite, "name", name)
     set_attribute!(x_testsuite, "id", id)
     set_attribute!(x_testsuite, "tests", ntests)
@@ -20,7 +20,7 @@ end
 
 function testsuite_xml(name, id, ntests, nfails, nerrors, x_children)
     x_testsuite = ElementNode("testsuite")
-    link!.(x_testsuite, x_children)
+    link!.(Ref(x_testsuite), x_children)
     set_attribute!(x_testsuite, "name", name)
     set_attribute!(x_testsuite, "id", id)
     set_attribute!(x_testsuite, "tests", ntests)
@@ -31,7 +31,7 @@ end
 
 function testcase_xml(name, id, x_children)
     x_tc = ElementNode("testcase")
-    link!.(x_tc, x_children)
+    link!.(Ref(x_tc), x_children)
     set_attribute!(x_tc, "name", name)
     set_attribute!(x_tc, "id", id)
     x_tc
