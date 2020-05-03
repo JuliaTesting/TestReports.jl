@@ -1,4 +1,4 @@
-using Base.Test
+using Test
 using TestReports
 
 (@testset ReportingTestSet "Example" begin

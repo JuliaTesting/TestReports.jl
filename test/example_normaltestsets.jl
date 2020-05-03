@@ -1,7 +1,7 @@
-using Base.Test
+using Test
 using Base.Threads
 
-@testset "Math" begin 
+@testset "Math" begin
 
     @testset "Multiplication" begin
         @test 1*3 == 3
@@ -9,7 +9,7 @@ using Base.Threads
         @test 1*4 == 4
     end
 
-    @test 4 % 2 == 0 
+    @test 4 % 2 == 0
     @test sqrt(20) == 5 # wrong
     @test 16 == 16
 
@@ -24,7 +24,7 @@ using Base.Threads
             @test 10 + -5 == 5
         end
     end
-    
+
     @testset "other" begin
         @test_broken sqrt(-1)
         @test 1/0 # not a real test
