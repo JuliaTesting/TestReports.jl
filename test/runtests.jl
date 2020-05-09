@@ -10,7 +10,11 @@ strip_filepaths(str) = replace(str, r" at .*\d+$"m => "")
 end
 
 @testset "Complex Example" begin
-    @test_reference "references/complexexample.txt" read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> strip_filepaths
+    if VERSION >= v"1.4.0"
+        @test_reference "references/complexexample.txt" read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> strip_filepaths
+    else
+        @test_reference "references/complexexample_julia_1_3.txt" read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> strip_filepaths
+    end
 end
 
 
