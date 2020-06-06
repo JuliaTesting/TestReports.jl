@@ -35,7 +35,7 @@ end
     exit(any_problems(ts))
     """
 
-    @test_throws ProcessFailedException run(`$(Base.julia_cmd()) -e $(fail_code)`)
+    @test_throws Exception run(`$(Base.julia_cmd()) -e $(fail_code)`)
 
 
     pass_code = """
