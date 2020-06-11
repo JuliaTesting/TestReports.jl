@@ -19,7 +19,7 @@ end
     if VERSION >= v"1.4.0"
         @test_reference "references/complexexample.txt" read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> strip_filepaths |> replace_windows_filepaths |> replace_Int32s
     else
-        @test_reference "references/complexexample_julia_1_3.txt" read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> strip_filepaths |> replace_windows_filepaths |> replace_Int32s
+        @warn "skipping complex reference test on pre-Julia 1.4"
     end
 end
 
