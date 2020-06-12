@@ -1,6 +1,8 @@
 using TestReports
 using Test
 using ReferenceTests
+using UUIDs
+using Pkg
 
 # Strip the filenames from the string, so that the reference strings work on different computers
 strip_filepaths(str) = replace(str, r" at .*\d+$"m => "")
@@ -51,4 +53,13 @@ end
 
 
 
+end
+
+const TEST_PKG = (name = "Example", uuid = UUID("7876af07-990d-54b4-ab0e-23690620f79a"))
+
+@testset "Runner tests" begin
+    Pkg.add(TEST_PKG.name)
+    TestReports.test("Example") # Should pass
+    Pkg.rm(TEST_PKG.name)
+    @test_throws Exception TestReports.test("Example") # Should fail
 end
