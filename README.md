@@ -1,7 +1,7 @@
 # TestReports
 
-[![Build Status](https://travis-ci.org/oxinabox/TestReports.jl.svg?branch=master)](https://travis-ci.org/oxinabox/TestReports.jl)
-
+Linux and macOS: [![Build Status](https://travis-ci.org/oxinabox/TestReports.jl.svg?branch=master)](https://travis-ci.org/oxinabox/TestReports.jl)
+Windows:[![Build Status](https://ci.appveyor.com/api/projects/status/github/oxinabox/TestReports.jl?branch=master&svg=true)](https://ci.appveyor.com/project/oxinabox/testreports-jl/branch/master)
 
 This package produces JUnit style XML test reports.
 It is for use with your tooling of choice
@@ -80,4 +80,3 @@ and then use something like the Runner script to generate a wrapper of your test
 I don't know how well this will work with named testset types.
 If they act like the DefaultTestSet then everything should be fine.
 But if they don't push themselves on to their parents testsets when the fininish then we will not be able to see their results.
-
