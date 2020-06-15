@@ -61,5 +61,5 @@ const TEST_PKG = (name = "Example", uuid = UUID("7876af07-990d-54b4-ab0e-2369062
     Pkg.add(TEST_PKG.name)
     TestReports.test("Example") # Should pass
     Pkg.rm(TEST_PKG.name)
-    @test_throws Exception TestReports.test("Example") # Should fail
+    @test_throws Exception TestReports.test("Example")
 end
