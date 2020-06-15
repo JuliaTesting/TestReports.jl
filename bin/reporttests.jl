@@ -8,7 +8,7 @@ script = """
 using Test
 using TestReports
 ts = @testset ReportingTestSet "" begin
-    include("$testfilename")
+    include($(repr(testfilename)))
 end
 
 open("testlog.xml","w") do fh
