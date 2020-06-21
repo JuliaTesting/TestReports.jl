@@ -1,11 +1,11 @@
 module TestReports
 
 # package code goes here
-using Base.Test
+using Test
 using EzXML
 
-import Base.Test: AbstractTestSet, record, finish, get_testset_depth, get_testset
-import Base.Test: Result, Fail, Broken, Pass, Error, scrub_backtrace
+import Test: AbstractTestSet, record, finish, get_testset_depth, get_testset
+import Test: Result, Fail, Broken, Pass, Error, scrub_backtrace
 
 export ReportingTestSet, any_problems, report
 
