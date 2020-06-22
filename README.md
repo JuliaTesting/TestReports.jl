@@ -2,6 +2,8 @@
 
 Linux and macOS: [![Build Status](https://travis-ci.org/oxinabox/TestReports.jl.svg?branch=master)](https://travis-ci.org/oxinabox/TestReports.jl)
 Windows:[![Build Status](https://ci.appveyor.com/api/projects/status/github/oxinabox/TestReports.jl?branch=master&svg=true)](https://ci.appveyor.com/project/oxinabox/testreports-jl/branch/master)
+[![ColPrac: Contributor's Guide on Collaborative Practices for Community Packages](https://img.shields.io/badge/ColPrac-Contributor's%20Guide-blueviolet)](https://github.com/SciML/ColPrac)
+
 
 This package produces JUnit style XML test reports.
 It is for use with your tooling of choice
