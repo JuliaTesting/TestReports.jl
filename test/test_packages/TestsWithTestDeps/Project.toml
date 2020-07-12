@@ -1,0 +1,10 @@
+name = "TestsWithTestDeps"
+uuid = "3ef0d59a-7f5b-48e9-8833-7baa3598d41d"
+version = "0.1.0"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Dictionaries = "85a47980-9c8c-11e8-2b9f-f7ca1fa99fb4"
+
+[targets]
+test = ["Test", "Dictionaries"]

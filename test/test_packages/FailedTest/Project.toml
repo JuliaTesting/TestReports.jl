@@ -1,0 +1,9 @@
+name = "FailedTest"
+uuid = "b111998f-d1ee-4258-8c48-76b2c883f553"
+version = "0.1.0"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
