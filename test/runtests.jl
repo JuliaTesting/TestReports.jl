@@ -4,6 +4,9 @@ using ReferenceTests
 using UUIDs
 using Pkg
 
+# Include utils
+include("utils.jl")
+
 # Strip the filenames from the string, so that the reference strings work on different computers
 strip_filepaths(str) = replace(str, r" at .*\d+$"m => "")
 
@@ -57,65 +60,64 @@ end
 
 const TEST_PKG = (name = "Example", uuid = UUID("7876af07-990d-54b4-ab0e-23690620f79a"))
 
-"""
-Helper function to verify the runner successfully ran a test suite based on
-the Info messages that were logged.
-"""
-function test_successful_testrun(testrun::Function, project::AbstractString)
-    successful_pass_matcher = Regex("$(project) tests passed. Results saved to .+\\.\$")
-    @test_logs (:info, "Testing $(project)") (:info, successful_pass_matcher) testrun()
-end
-
-""""
-Helper function to execute 'work' within the context of an active
-project. The `project` should be `Pkg.develop`able.
-"""
-function with_active_project(work_within_context::Function, project::AbstractString)
-    Pkg.develop(project; shared = false)
-    Pkg.activate(project)
-
-    work_within_context()
-
-    Pkg.activate()
-    Pkg.rm(project)
-end
-
 @testset "Runner tests" begin
     @testset "installed packages by name" begin
         Pkg.add(TEST_PKG.name)
         test_successful_testrun(() -> TestReports.test(TEST_PKG.name), TEST_PKG.name)
         Pkg.rm(TEST_PKG.name)
-        @test_throws TestReports.PkgTestError TestReports.test("Example")
+        @test_throws TestReports.PkgTestError TestReports.test(TEST_PKG.name)
     end
 
     @testset "activated projects" begin
         @testset "by name" begin
             # The test run should not fail when passed the name of the project
             # that is activated and fail when its deactivated
-            with_active_project(TEST_PKG.name) do
-                test_successful_testrun(() -> TestReports.test(TEST_PKG.name), TEST_PKG.name)
-            end
+            test_active_package_expected_pass("PassingTests")
             @test_throws TestReports.PkgTestError TestReports.test(TEST_PKG.name)
         end
 
         @testset "implicitly without positional arguments" begin
             # The test run should not fail when a project is implied through
             # one being active
-            with_active_project(TEST_PKG.name) do
-                test_successful_testrun(TestReports.test, TEST_PKG.name)
+            temp_pkg_dir() do tmp
+                copy_test_package(tmp, "PassingTests")
+                Pkg.activate(joinpath(tmp, "PassingTests"))
+                test_successful_testrun(TestReports.test, "PassingTests")
             end
 
             # The test run should fail with a descriptive message when a
             # project is implied, but none is active (e.g. if a shared
             # environment is active).
-            #
-            # This needs to be tested explicitly in the context of a shared
-            # environment, as otherwise `Pkg.activate` may revert back to a
-            # 'home project' (e.g. as specified by a `JULIA_PROJECT`
-            # environment variables as is the case on Travis CI)
-            Pkg.activate("@v$(VERSION.major).$(VERSION.minor)"; shared = true)
-            @test_throws TestReports.PkgTestError TestReports.test()
-            Pkg.activate()
+            temp_pkg_dir() do tmp
+                @test_throws TestReports.PkgTestError TestReports.test()
+            end
+        end
+    end
+end
+
+@testset "Test packages" begin
+    # Errors
+    test_active_package_expected_fail("FailedTest")
+    test_active_package_expected_fail("ErroredTest")
+    test_active_package_expected_fail("NoTestFile")
+
+    # Various test dependencies
+    test_pkgs = [
+        "TestsWithDeps",
+        "TestsWithTestDeps"
+    ]
+    for pkg in test_pkgs
+        test_active_package_expected_pass(pkg)
+    end
+
+    # Test file project file tests, 1.2 and above
+    @static if VERSION >= v"1.2.0"
+        test_pkgs = [
+            "TestsWithProjectFile",
+            "TestsWithProjectFileWithTestDeps"
+        ]
+        for pkg in test_pkgs
+            test_active_package_expected_pass(pkg)
         end
     end
 end
@@ -144,3 +146,6 @@ end
     @test TestReports.display_reporting_testset(ts_reporting) == nothing
     @test ts_reporting_copy.results == ts_reporting.results
 end
+
+# clean up locally cached registry
+rm(joinpath(@__DIR__, "registries"); force=true, recursive=true)
