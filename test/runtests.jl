@@ -58,8 +58,17 @@ end
 const TEST_PKG = (name = "Example", uuid = UUID("7876af07-990d-54b4-ab0e-23690620f79a"))
 
 @testset "Runner tests" begin
+    # Run tests for an installed package
     Pkg.add(TEST_PKG.name)
     TestReports.test("Example") # Should pass
     Pkg.rm(TEST_PKG.name)
     @test_throws Exception TestReports.test("Example")
+
+    # Run tests for a local, in-development package
+    Pkg.develop(TEST_PKG.name; shared = false)
+    Pkg.activate(TEST_PKG.name)
+    TestReports.test(TEST_PKG.name)
+    Pkg.activate()
+    Pkg.rm(TEST_PKG.name)
+    @test_throws Exception TestReports.test(TEST_PKG.name)
 end
