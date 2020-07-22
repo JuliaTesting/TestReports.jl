@@ -11,6 +11,8 @@ ts = @testset ReportingTestSet "" begin
     include($(repr(testfilename)))
 end
 
+display_reporting_testset(ts)
+
 open("testlog.xml","w") do fh
     print(fh, report(ts))
 end

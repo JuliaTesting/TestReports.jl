@@ -4,10 +4,10 @@ module TestReports
 using Test
 using EzXML
 
-import Test: AbstractTestSet, record, finish, get_testset_depth, get_testset
+import Test: AbstractTestSet, DefaultTestSet, record, finish, get_testset_depth, get_testset
 import Test: Result, Fail, Broken, Pass, Error, scrub_backtrace
 
-export ReportingTestSet, any_problems, report
+export ReportingTestSet, any_problems, report, display_reporting_testset
 
 include("./testsets.jl")
 include("to_xml.jl")
