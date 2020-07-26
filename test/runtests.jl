@@ -119,3 +119,28 @@ end
         end
     end
 end
+
+@testset "ReportingTestSet Display" begin
+    # Test adding of results
+    ts_default = Test.DefaultTestSet("")
+    TestReports.add_to_ts_default!(ts_default, Test.Pass(:null, nothing, nothing, nothing))
+    @test length(ts_default.results) == 0
+    @test ts_default.n_passed == 1
+    TestReports.add_to_ts_default!(ts_default, Test.Fail(:null,:(1==2),nothing,nothing,LineNumberNode(1)))
+    @test ts_default.n_passed == 1
+    @test typeof(ts_default.results[1]) == Test.Fail
+    TestReports.add_to_ts_default!(ts_default, Test.Error(:null,:(1==2),nothing,nothing,LineNumberNode(1)))
+    @test ts_default.n_passed == 1
+    @test typeof(ts_default.results[2]) == Test.Error
+
+    # Test adding of test set
+    ts_reporting = ReportingTestSet("rts")
+    Test.record(ts_reporting, Test.Pass(:null, nothing, nothing, nothing))
+    TestReports.add_to_ts_default!(ts_default, ts_reporting)
+    @test typeof(ts_default.results[3]) == Test.DefaultTestSet
+
+    # Test displaying of results doesn't change reporting test set
+    ts_reporting_copy = deepcopy(ts_reporting)
+    @test TestReports.display_reporting_testset(ts_reporting) == nothing
+    @test ts_reporting_copy.results == ts_reporting.results
+end

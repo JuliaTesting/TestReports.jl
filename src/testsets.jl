@@ -20,7 +20,6 @@ function finish(ts::ReportingTestSet)
     end
 
     # We are the top level, lets do this
-    #to_xml(ts, Val(0))
     flatten_results!(ts)
 end
 
@@ -53,7 +52,7 @@ function flatten_results!(ts::AbstractTestSet)
         ts.description*= "/"*first(ts.results).description
         ts.results = first(ts.results).results
     end
-    
+
     # Flatten it
     ts.results = vcat(_flatten_results!.(ts.results, Val{:top}())...)
     ts
@@ -86,3 +85,40 @@ _flatten_results!(rs::Result, ::Val{:top})::Vector{AbstractTestSet} = [Reporting
 
 "A result with a parent testset"
 _flatten_results!(rs::Result, ::Val{:child}) = [rs]
+
+"""
+    display_reporting_testset(ts::ReportingTestSet)
+
+Displays the test output in the same format as Pkg.test() by using a
+`DefaultTestSet`.
+"""
+function display_reporting_testset(ts::ReportingTestSet)
+    # Create top level default testset to hold all results
+    ts_default = DefaultTestSet("")
+    add_to_ts_default!.(Ref(ts_default), ts.results)
+    try
+        # Finish each of the results of the top level testset, to mimick the
+        # output from Pkg.test()
+        finish.(ts_default.results)
+    catch
+        # Don't want to error here if a test fails or errors. This is handled elswhere.
+        TestSetException
+    end
+    return nothing
+end
+
+"""
+    add_to_ts_default!(ts_default::DefaultTestSet, result::Result)
+    add_to_ts_default!(ts_default::DefaultTestSet, ts::ReportingTestSet)
+
+Populate `ts_default` with the supplied variable. If the variable is a `Result`
+then it is recorded. If it is a `ReportingTestSet` then a new `DefaultTestSet`
+with matching description is created, populated by recursively calling this
+function and then added to the results of `ts_default`.
+"""
+add_to_ts_default!(ts_default::DefaultTestSet, result::Result) = record(ts_default, result)
+function add_to_ts_default!(ts_default::DefaultTestSet, ts::ReportingTestSet)
+    sub_ts = DefaultTestSet(ts.description)
+    add_to_ts_default!.(Ref(sub_ts), ts.results)
+    push!(ts_default.results, sub_ts)
+end

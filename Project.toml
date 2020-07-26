@@ -1,6 +1,6 @@
 name = "TestReports"
 uuid = "dcd651b4-b50a-5b6b-8f22-87e9f253a252"
-version = "0.2.1"
+version = "0.2.2"
 
 [deps]
 EzXML = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
