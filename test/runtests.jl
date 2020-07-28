@@ -120,6 +120,15 @@ end
             test_active_package_expected_pass(pkg)
         end
     end
+
+    # Test arguments
+    temp_pkg_dir() do tmp
+        pkg = "TestArguments"
+        copy_test_package(tmp, pkg)
+        Pkg.activate(joinpath(tmp, pkg))
+        test_successful_testrun(() -> TestReports.test(pkg; test_args=`a b`, julia_args=`--quiet --check-bounds=no`), pkg)
+        test_successful_testrun(() -> TestReports.test(pkg; test_args=["a", "b"], julia_args=`--quiet --check-bounds=no`), pkg)
+    end
 end
 
 @testset "ReportingTestSet Display" begin
