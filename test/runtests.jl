@@ -1,5 +1,6 @@
 using TestReports
 using Test
+import Test: Fail, Broken, Pass, Error 
 using ReferenceTests
 using UUIDs
 using Pkg
@@ -31,6 +32,10 @@ end
 
 
 @testset "any_problems" begin
+    @test any_problems(Pass(Symbol(), nothing, nothing, nothing)) == false
+    @test any_problems(Fail(Symbol(), nothing, nothing, nothing, LineNumberNode(1))) == true
+    @test any_problems(Broken(Symbol(1), nothing)) == false
+    @test any_problems(Error(Symbol(), nothing, nothing, nothing, LineNumberNode(1))) == true
 
     fail_code = """
     using Test
@@ -43,7 +48,6 @@ end
 
     @test_throws Exception run(`$(Base.julia_cmd()) -e $(fail_code)`)
 
-
     pass_code = """
     using Test
     using TestReports
@@ -54,19 +58,23 @@ end
     """
 
     @test run(`$(Base.julia_cmd()) -e $(pass_code)`) isa Any #this line would error if fail
-
-
-
 end
 
 const TEST_PKG = (name = "Example", uuid = UUID("7876af07-990d-54b4-ab0e-23690620f79a"))
 
 @testset "Runner tests" begin
     @testset "installed packages by name" begin
+        # Pkd.add
         Pkg.add(TEST_PKG.name)
         test_successful_testrun(() -> TestReports.test(TEST_PKG.name), TEST_PKG.name)
         Pkg.rm(TEST_PKG.name)
         @test_throws TestReports.PkgTestError TestReports.test(TEST_PKG.name)
+
+        # Pkd.develop
+        pkgname = "PassingTests"
+        Pkg.develop(Pkg.PackageSpec(path=joinpath(@__DIR__, "test_packages", pkgname)))
+        test_successful_testrun(() -> TestReports.test(pkgname), pkgname)
+        Pkg.rm("PassingTests")
     end
 
     @testset "activated projects" begin
@@ -93,6 +101,29 @@ const TEST_PKG = (name = "Example", uuid = UUID("7876af07-990d-54b4-ab0e-2369062
                 @test_throws TestReports.PkgTestError TestReports.test()
             end
         end
+    end
+end
+
+if VERSION < v"1.2.0"
+    @testset "gettestfilepath - V1.0.5" begin
+        # Stdlibs are not tested by other functions for V1.0.5
+        stdlibname = "Dates"
+        ctx = Pkg.Types.Context()
+        pkg = Pkg.PackageSpec(stdlibname)
+        TestReports.checkinstalled!(ctx.env, pkg)
+        delete!(ctx.env.manifest[stdlibname][1], "path")  # Remove path to force stdlib check
+        testfilepath = joinpath(abspath(joinpath(dirname(Base.find_package(stdlibname)), "..")), "test", "runtests.jl")
+        @test TestReports.gettestfilepath(ctx, pkg) == testfilepath
+
+        # PkgTestError when PkgSpec has missing info when finding path - V1.0.5 only
+        pkgname = "PassingTests"
+        Pkg.develop(Pkg.PackageSpec(path=joinpath(@__DIR__, "test_packages", pkgname)))
+        ctx = Pkg.Types.Context()
+        pkg = Pkg.PackageSpec(pkgname)
+        TestReports.checkinstalled!(ctx.env, pkg)
+        delete!(ctx.env.manifest["PassingTests"][1], "path")
+        @test_throws TestReports.PkgTestError TestReports.gettestfilepath(ctx, pkg)
+        Pkg.rm(Pkg.PackageSpec(path=joinpath(@__DIR__, "test_packages", pkgname)))
     end
 end
 
@@ -155,6 +186,15 @@ end
     ts_reporting_copy = deepcopy(ts_reporting)
     @test TestReports.display_reporting_testset(ts_reporting) == nothing
     @test ts_reporting_copy.results == ts_reporting.results
+
+    # Test fail/error in results doesn't throw error
+    Test.record(ts_reporting, Fail(Symbol(), 1, "1", "1", LineNumberNode(1)))
+    @test TestReports.display_reporting_testset(ts_reporting) == nothing
+end
+
+@testset "showerror" begin
+    @test_throws TestReports.PkgTestError throw(TestReports.PkgTestError("Test"))
+    @test sprint(showerror, TestReports.PkgTestError("Error text"), "") == "Error text"
 end
 
 # clean up locally cached registry

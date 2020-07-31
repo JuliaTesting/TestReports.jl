@@ -100,9 +100,8 @@ function display_reporting_testset(ts::ReportingTestSet)
         # Finish each of the results of the top level testset, to mimick the
         # output from Pkg.test()
         finish.(ts_default.results)
-    catch
+    catch TestSetException
         # Don't want to error here if a test fails or errors. This is handled elswhere.
-        TestSetException
     end
     return nothing
 end
