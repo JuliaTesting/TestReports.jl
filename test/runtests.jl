@@ -16,16 +16,17 @@ replace_windows_filepaths(str) = replace(str, ".\\" => "./")
 # Replace Int32s so reference strings work on x86 platforms
 replace_Int32s(str) = replace(str, "Int32" => "Int64")
 
+# remove stacktraces so reference strings work for different Julia versions
+remove_stacktraces(str) = replace(str, r"(Stacktrace:)[^<]*" => "")
+
+const clean_report = replace_Int32s ∘ replace_windows_filepaths ∘ strip_filepaths ∘ remove_stacktraces
+
 @testset "SingleNest" begin
-    @test_reference "references/singlenest.txt" read(`$(Base.julia_cmd()) -e "using Test; using TestReports; (@testset ReportingTestSet \"blah\" begin @testset \"a\" begin @test 1 ==1 end end) |> report |> print"`, String) |> strip_filepaths |> replace_windows_filepaths |> replace_Int32s
+    @test_reference "references/singlenest.txt" read(`$(Base.julia_cmd()) -e "using Test; using TestReports; (@testset ReportingTestSet \"blah\" begin @testset \"a\" begin @test 1 ==1 end end) |> report |> print"`, String) |> clean_report
 end
 
 @testset "Complex Example" begin
-    if VERSION >= v"1.4.0"
-        @test_reference "references/complexexample.txt" read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> strip_filepaths |> replace_windows_filepaths |> replace_Int32s
-    else
-        @warn "skipping complex reference test on pre-Julia 1.4"
-    end
+    @test_reference "references/complexexample.txt" read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> clean_report
 end
 
 

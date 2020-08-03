@@ -8,73 +8,7 @@
    Evaluated: 3 == 5</failure></testcase><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite><testsuite name="addition/negative addition" id="_id_" tests="3" failures="1" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/><testcase name="1 + -2 == 1" id="_testcase_id_"><failure message="-1 == 1" type="test">Test Failed
   Expression: 1 + -2 == 1
    Evaluated: -1 == 1</failure></testcase><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite><testsuite name="other" id="_id_" tests="0" failures="0" errors="3"><testcase name="sqrt(-1)" id="_testcase_id_"><skip/></testcase><error message="Inf" type="String">
-Stacktrace:
- [1] to_xml(::Test.Error)
- [2] (::TestReports.var"#4#5")(::Test.Error)
- [3] iterate at ./generator.jl:47 [inlined]
- [4] collect_to!(::Array{EzXML.Node,1}, ::Base.Generator{Array{Test.Result,1},TestReports.var"#4#5"}, ::Int64, ::Int64)
- [5] collect_to_with_first! at ./array.jl:689 [inlined]
- [6] _collect(::Array{Test.Result,1}, ::Base.Generator{Array{Test.Result,1},TestReports.var"#4#5"}, ::Base.EltypeUnknown, ::Base.HasShape{1})
- [7] collect_similar(::Array{Test.Result,1}, ::Base.Generator{Array{Test.Result,1},TestReports.var"#4#5"})
- [8] map(::Function, ::Array{Test.Result,1})
- [9] to_xml(::ReportingTestSet)
- [10] (::TestReports.var"#2#3")(::ReportingTestSet)
- [11] iterate at ./generator.jl:47 [inlined]
- [12] collect_to!(::Array{EzXML.Node,1}, ::Base.Generator{Array{Test.AbstractTestSet,1},TestReports.var"#2#3"}, ::Int64, ::Int64)
- [13] collect_to_with_first! at ./array.jl:689 [inlined]
- [14] _collect(::Array{Test.AbstractTestSet,1}, ::Base.Generator{Array{Test.AbstractTestSet,1},TestReports.var"#2#3"}, ::Base.EltypeUnknown, ::Base.HasShape{1})
- [15] collect_similar(::Array{Test.AbstractTestSet,1}, ::Base.Generator{Array{Test.AbstractTestSet,1},TestReports.var"#2#3"})
- [16] map(::Function, ::Array{Test.AbstractTestSet,1})
- [17] report(::ReportingTestSet)
- [18] |&gt;(::ReportingTestSet, ::typeof(report))
- [19] top-level scope
- [20] include(::Module, ::String)
- [21] exec_options(::Base.JLOptions)
- [22] _start() at ./client.jl:484</error><error message="ErrorException(&quot;Nooo&quot;)" type="String">
-Stacktrace:
- [1] to_xml(::Test.Error)
- [2] (::TestReports.var"#4#5")(::Test.Error)
- [3] iterate at ./generator.jl:47 [inlined]
- [4] collect_to!(::Array{EzXML.Node,1}, ::Base.Generator{Array{Test.Result,1},TestReports.var"#4#5"}, ::Int64, ::Int64)
- [5] collect_to_with_first! at ./array.jl:689 [inlined]
- [6] _collect(::Array{Test.Result,1}, ::Base.Generator{Array{Test.Result,1},TestReports.var"#4#5"}, ::Base.EltypeUnknown, ::Base.HasShape{1})
- [7] collect_similar(::Array{Test.Result,1}, ::Base.Generator{Array{Test.Result,1},TestReports.var"#4#5"})
- [8] map(::Function, ::Array{Test.Result,1})
- [9] to_xml(::ReportingTestSet)
- [10] (::TestReports.var"#2#3")(::ReportingTestSet)
- [11] iterate at ./generator.jl:47 [inlined]
- [12] collect_to!(::Array{EzXML.Node,1}, ::Base.Generator{Array{Test.AbstractTestSet,1},TestReports.var"#2#3"}, ::Int64, ::Int64)
- [13] collect_to_with_first! at ./array.jl:689 [inlined]
- [14] _collect(::Array{Test.AbstractTestSet,1}, ::Base.Generator{Array{Test.AbstractTestSet,1},TestReports.var"#2#3"}, ::Base.EltypeUnknown, ::Base.HasShape{1})
- [15] collect_similar(::Array{Test.AbstractTestSet,1}, ::Base.Generator{Array{Test.AbstractTestSet,1},TestReports.var"#2#3"})
- [16] map(::Function, ::Array{Test.AbstractTestSet,1})
- [17] report(::ReportingTestSet)
- [18] |&gt;(::ReportingTestSet, ::typeof(report))
- [19] top-level scope
- [20] include(::Module, ::String)
- [21] exec_options(::Base.JLOptions)
- [22] _start() at ./client.jl:484</error><error message="DimensionMismatch(&quot;B has leading dimension 4, but needs 2&quot;)" type="String">
-Stacktrace:
- [1] to_xml(::Test.Error)
- [2] (::TestReports.var"#4#5")(::Test.Error)
- [3] iterate at ./generator.jl:47 [inlined]
- [4] collect_to!(::Array{EzXML.Node,1}, ::Base.Generator{Array{Test.Result,1},TestReports.var"#4#5"}, ::Int64, ::Int64)
- [5] collect_to_with_first! at ./array.jl:689 [inlined]
- [6] _collect(::Array{Test.Result,1}, ::Base.Generator{Array{Test.Result,1},TestReports.var"#4#5"}, ::Base.EltypeUnknown, ::Base.HasShape{1})
- [7] collect_similar(::Array{Test.Result,1}, ::Base.Generator{Array{Test.Result,1},TestReports.var"#4#5"})
- [8] map(::Function, ::Array{Test.Result,1})
- [9] to_xml(::ReportingTestSet)
- [10] (::TestReports.var"#2#3")(::ReportingTestSet)
- [11] iterate at ./generator.jl:47 [inlined]
- [12] collect_to!(::Array{EzXML.Node,1}, ::Base.Generator{Array{Test.AbstractTestSet,1},TestReports.var"#2#3"}, ::Int64, ::Int64)
- [13] collect_to_with_first! at ./array.jl:689 [inlined]
- [14] _collect(::Array{Test.AbstractTestSet,1}, ::Base.Generator{Array{Test.AbstractTestSet,1},TestReports.var"#2#3"}, ::Base.EltypeUnknown, ::Base.HasShape{1})
- [15] collect_similar(::Array{Test.AbstractTestSet,1}, ::Base.Generator{Array{Test.AbstractTestSet,1},TestReports.var"#2#3"})
- [16] map(::Function, ::Array{Test.AbstractTestSet,1})
- [17] report(::ReportingTestSet)
- [18] |&gt;(::ReportingTestSet, ::typeof(report))
- [19] top-level scope
- [20] include(::Module, ::String)
- [21] exec_options(::Base.JLOptions)
- [22] _start() at ./client.jl:484</error></testsuite><testsuite name="using function from a module" id="_id_" tests="1" failures="0" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite></testsuites>
+</error><error message="ErrorException(&quot;Nooo&quot;)" type="String">
+</error><error message="DimensionMismatch(&quot;B has leading dimension 4, but needs 2&quot;)" type="String">
+</error></testsuite><testsuite name="using function from a module" id="_id_" tests="1" failures="0" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite></testsuites>
 
