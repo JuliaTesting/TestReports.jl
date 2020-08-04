@@ -197,5 +197,41 @@ end
     @test sprint(showerror, TestReports.PkgTestError("Error text"), "") == "Error text"
 end
 
+@testset "logfile options" begin
+    Pkg.add(TEST_PKG.name)
+
+    # Single package tests
+    TestReports.test(TEST_PKG.name)
+    @test isfile(joinpath(pwd(),"testlog.xml"))
+    TestReports.test(TEST_PKG.name; logfilename="changedname.xml")
+    @test isfile(joinpath(pwd(),"changedname.xml"))
+    new_path = joinpath(pwd(), "NonExistentDir")
+    TestReports.test(TEST_PKG.name; logfilename="testlog.xml", logfilepath=new_path)
+    @test isfile(joinpath(new_path,"testlog.xml"))
+
+    # Multiple package test
+    temp_pkg_dir() do tmp
+        copy_test_package(tmp, "PassingTests")
+        Pkg.develop(Pkg.PackageSpec(path=joinpath(tmp, "PassingTests")))
+        Pkg.add(TEST_PKG.name)
+        TestReports.test([TEST_PKG.name, "PassingTests"])
+        @test isfile(joinpath(pwd(),"Example_testlog.xml"))
+        @test isfile(joinpath(pwd(),"PassingTests_testlog.xml"))
+        TestReports.test([TEST_PKG.name, "PassingTests"]; logfilename=["testlog1.xml", "testlog2.xml"])
+        @test isfile(joinpath(pwd(),"testlog1.xml"))
+        @test isfile(joinpath(pwd(),"testlog2.xml"))
+    end
+
+    # Errors
+    @test_throws ArgumentError TestReports.test([TEST_PKG.name, TEST_PKG.name]; logfilename=["testlog.xml"])
+    @test_throws TypeError TestReports.test([TEST_PKG.name]; logfilename="ThisShouldBeInAnArray.xml")
+    @test_throws TypeError TestReports.test(TEST_PKG.name; logfilename=["ThisShouldJustBeAString.xml"])
+
+    # Tidy up
+    Pkg.rm(TEST_PKG.name)
+    rm.(joinpath.(Ref(pwd()), ["testlog.xml", "changedname.xml", "Example_testlog.xml", "PassingTests_testlog.xml", "testlog1.xml", "testlog2.xml"]))
+    rm(new_path, recursive=true)
+end
+
 # clean up locally cached registry
 rm(joinpath(@__DIR__, "registries"); force=true, recursive=true)
