@@ -105,6 +105,7 @@ function to_xml(ts::AbstractTestSet)
     end
 
     x_testsuite = testsuite_xml(ts.description, "_id_", total_ntests, total_nfails, total_nerrors, x_testcases)
+    ts isa ReportingTestSet && add_testsuite_properties!(x_testsuite, ts)
     x_testsuite, total_ntests, total_nfails, total_nerrors
 end
 
@@ -135,4 +136,22 @@ function to_xml(v::Error)
     x_testcase, 0,0,1
 end
 
+"""
+    add_testsuite_properties!(x_testsuite, ts::ReportingTestSet)
 
+Add all key value pairs in the `properties` field of a `ReportingTestSet` to the
+corresponding testsuite xml element.
+"""
+function add_testsuite_properties!(x_testsuite, ts::ReportingTestSet)
+    if !isempty(keys(ts.properties))
+        x_properties = ElementNode("properties")
+        for (name, value) in ts.properties
+            x_property = ElementNode("property")
+            set_attribute!(x_property, "name", name)
+            set_attribute!(x_property, "value", value)
+            link!(x_properties, x_property)
+        end
+        link!(x_testsuite, x_properties)
+    end
+    return x_testsuite
+end

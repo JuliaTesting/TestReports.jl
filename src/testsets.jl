@@ -1,11 +1,11 @@
 
 mutable struct ReportingTestSet <: AbstractTestSet
-    description::AbstractString
+    description::String
     results::Vector
+    properties::Dict{String, Any}
 end
 
-
-ReportingTestSet(desc) = ReportingTestSet(desc, [])
+ReportingTestSet(desc) = ReportingTestSet(desc, [], Dict())
 
 record(ts::ReportingTestSet, t) = (push!(ts.results, t); t)
 
@@ -82,6 +82,7 @@ function _flatten_results!(ts::AbstractTestSet) ::Vector{<:AbstractTestSet}
     end
     function inner!(childts::AbstractTestSet)
         # Make it a sibling
+        update_testset_properties!(childts, ts)
         childts.description = ts.description * "/" * childts.description
         push!(flattened_results, childts)
     end
@@ -110,6 +111,38 @@ Return vector containing `rs` so that when iterated through,
 `rs` is added to the results vector.
 """
 _flatten_results!(rs::Result) = [rs]
+
+"""
+    update_testset_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
+    update_testset_properties!(childts::ReportingTestSet, ts::ReportingTestSet)
+
+Adds properties of `ts` to `childts`. If any properties being added already exist in
+`childts`, a warning is displayed and the value in `childts` is overwritten.
+
+If `ts` and\\or `childts` is not a `ReportingTestSet`, this is handled in the
+`AbstractTestSet` method.
+"""
+function update_testset_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
+    if !isa(childts, ReportingTestSet) && isa(ts, ReportingTestSet) && !isempty(ts.properties)
+        @warn "Properties of testset $(ts.description) can not be added to child testset $(childts.description) as it is not a ReportingTestSet."
+    end
+    # No need to check if childts is ReportingTestSet and ts isn't, as if this is the case
+    # ts has no properties to apply to childts.
+    return childts
+end
+function update_testset_properties!(childts::ReportingTestSet, ts::ReportingTestSet)
+    parent_keys = keys(ts.properties)
+    child_keys = keys(childts.properties)
+    # Loop through keys so that warnings can be issued for any duplicates
+    for key in parent_keys
+        if key in child_keys
+            @warn "Property $key in testest $(ts.description) overwritten by child testset $(childts.description)"
+        else
+            childts.properties[key] = ts.properties[key]
+        end
+    end
+    return childts
+end
 
 """
     handle_top_level_results!(ts::AbstractTestSet)

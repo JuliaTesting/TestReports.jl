@@ -1,0 +1,3 @@
+module TestsWithProperties
+
+end # module

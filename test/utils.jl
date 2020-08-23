@@ -1,5 +1,19 @@
 using Pkg, Test, LibGit2
 
+# Strip the filenames from the string, so that the reference strings work on different computers
+strip_filepaths(str) = replace(str, r" at .*\d+$"m => "")
+
+# Replace direction of windows slashes so reference strings work on windows
+replace_windows_filepaths(str) = replace(str, ".\\" => "./")
+
+# Replace Int32s so reference strings work on x86 platforms
+replace_Int32s(str) = replace(str, "Int32" => "Int64")
+
+# remove stacktraces so reference strings work for different Julia versions
+remove_stacktraces(str) = replace(str, r"(Stacktrace:)[^<]*" => "")
+
+const clean_report = replace_Int32s ∘ replace_windows_filepaths ∘ strip_filepaths ∘ remove_stacktraces
+
 """
 `copy_test_package` copied from [`Pkg.jl/test/utils.jl`](https://github.com/JuliaLang/Pkg.jl/blob/v1.4.2/test/utils.jl#L209).
 https://github.com/JuliaLang/Pkg.jl/blob/master/test/utils.jl
