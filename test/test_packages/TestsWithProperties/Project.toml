@@ -1,0 +1,10 @@
+name = "TestsWithProperties"
+uuid = "95d226fd-931c-4fec-a11c-cee92c7ee4d2"
+version = "0.1.0"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+TestReports = "dcd651b4-b50a-5b6b-8f22-87e9f253a252"
+
+[targets]
+test = ["Test", "TestReports"]

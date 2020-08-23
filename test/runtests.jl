@@ -9,20 +9,7 @@ include("utils.jl")
 
 # Include other test scripts
 include("testsets.jl")
-
-# Strip the filenames from the string, so that the reference strings work on different computers
-strip_filepaths(str) = replace(str, r" at .*\d+$"m => "")
-
-# Replace direction of windows slashes so reference strings work on windows
-replace_windows_filepaths(str) = replace(str, ".\\" => "./")
-
-# Replace Int32s so reference strings work on x86 platforms
-replace_Int32s(str) = replace(str, "Int32" => "Int64")
-
-# remove stacktraces so reference strings work for different Julia versions
-remove_stacktraces(str) = replace(str, r"(Stacktrace:)[^<]*" => "")
-
-const clean_report = replace_Int32s ∘ replace_windows_filepaths ∘ strip_filepaths ∘ remove_stacktraces
+include("recordproperty.jl")
 
 @testset "SingleNest" begin
     @test_reference "references/singlenest.txt" read(`$(Base.julia_cmd()) -e "using Test; using TestReports; (@testset ReportingTestSet \"blah\" begin @testset \"a\" begin @test 1 ==1 end end) |> report |> print"`, String) |> clean_report
