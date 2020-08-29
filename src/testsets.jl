@@ -44,47 +44,92 @@ any_problems(::Error) = true
 
 
 """
-Returns a flat structure 2 deep, of Testset->Result
+    flatten_results!(ts::AbstractTestSet)
+
+Returns a flat structure 3 deep, of `TestSet` -> `TestSet` -> `Result`. This is necessary
+for writing a report, as a JUnitXML does not allow one testsuite to be nested in another.
+The top level `TestSet` becomes the testsuites element, and the middle level `TestSet`s
+become individual testsuite elements, and the `Result`s become the testcase elements.
+
+If `ts.results` contains any `Result`s, these are added into a new `TestSet` with the
+description "Top level tests", which then replaces them in `ts.results`.
 """
 function flatten_results!(ts::AbstractTestSet)
-    # Dig down through any singleton levels
-    while(length(ts.results) == 1 && first(ts.results) isa AbstractTestSet)
-        ts.description*= "/"*first(ts.results).description
-        ts.results = first(ts.results).results
-    end
+    # Add any top level Results to their own TestSet
+    handle_top_level_results!(ts)
 
-    # Flatten it
-    ts.results = vcat(_flatten_results!.(ts.results, Val{:top}())...)
-    ts
+    # Flatten all results of top level testset, which should all be testsets now
+    ts.results = vcat(_flatten_results!.(ts.results)...)
+    return ts
 end
 
-function _flatten_results!(ts::AbstractTestSet, ::Val) :: Vector{<:AbstractTestSet}
+"""
+    _flatten_results!(ts::AbstractTestSet) ::Vector{<:AbstractTestSet}
+
+Recursively flatten `ts` to a vector of `TestSet`s.
+"""
+function _flatten_results!(ts::AbstractTestSet) ::Vector{<:AbstractTestSet}
     original_results = ts.results
-    ts.results = Result[]
-    rets = AbstractTestSet[ts]
+    flattened_results = AbstractTestSet[]
+    # Track results that are a Result so that if there are any, they can be added
+    # in their own testset to flattened_results
+    results = Result[]
+
+    # Define nested functions
     function inner!(rs::Result)
-        push!(ts.results, rs)
+        # Add to results vector
+        push!(results, rs)
     end
     function inner!(childts::AbstractTestSet)
-        # make it a sibling
+        # Make it a sibling
         childts.description = ts.description * "/" * childts.description
-        push!(rets, childts)
+        push!(flattened_results, childts)
     end
 
+    # Iterate through original_results
     for res in original_results
-        childs = _flatten_results!(res, Val{:child}())
+        childs = _flatten_results!(res)
         for child in childs
             inner!(child)
         end
     end
-    rets
+
+    # results will be empty if ts.results only contains testsets
+    if !isempty(results)
+        # Use same ts to preserve description
+        ts.results = results
+        push!(flattened_results, ts)
+    end
+    return flattened_results
 end
 
-"A result without a parent testset"
-_flatten_results!(rs::Result, ::Val{:top})::Vector{AbstractTestSet} = [ReportingTestSet("", [rs])]
+"""
+    _flatten_results!(rs::Result)
 
-"A result with a parent testset"
-_flatten_results!(rs::Result, ::Val{:child}) = [rs]
+Return vector containing `rs` so that when iterated through,
+`rs` is added to the results vector.
+"""
+_flatten_results!(rs::Result) = [rs]
+
+"""
+    handle_top_level_results!(ts::AbstractTestSet)
+
+If `ts.results` contains any `Results`, these are removed from `ts.results` and
+added to a new `ReportingTestSet`, which in turn is added to `ts.results`. This
+leaves `ts.results` only containing `AbstractTestSet`s.
+"""
+function handle_top_level_results!(ts::AbstractTestSet)
+    isa_Result = isa.(ts.results, Result)
+    if any(isa_Result)
+        original_results = ts.results
+        ts.results = AbstractTestSet[]
+        ts_nested = ReportingTestSet("Top level tests")
+        ts_nested.results = original_results[isa_Result]
+        push!(ts.results, ts_nested)
+        append!(ts.results, original_results[.!isa_Result])
+    end
+    return ts
+end
 
 """
     display_reporting_testset(ts::ReportingTestSet)
