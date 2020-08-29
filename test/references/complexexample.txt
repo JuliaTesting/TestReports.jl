@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="Example/Math" id="_id_" tests="13" failures="4" errors="3"><testsuite name="Multiplication" id="_id_" tests="3" failures="1" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/><testcase name="1 * 2 == 5" id="_testcase_id_"><failure message="2 == 5" type="test">Test Failed
+<testsuites name="Example" id="_id_" tests="13" failures="4" errors="3"><testsuite name="Math/Multiplication" id="_id_" tests="3" failures="1" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/><testcase name="1 * 2 == 5" id="_testcase_id_"><failure message="2 == 5" type="test">Test Failed
   Expression: 1 * 2 == 5
-   Evaluated: 2 == 5</failure></testcase><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite><testsuite name="" id="_id_" tests="1" failures="0" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite><testsuite name="" id="_id_" tests="1" failures="1" errors="0"><testcase name="sqrt(20) == 5" id="_testcase_id_"><failure message="4.47213595499958 == 5" type="test">Test Failed
-  Expression: sqrt(20) == 5
-   Evaluated: 4.47213595499958 == 5</failure></testcase></testsuite><testsuite name="" id="_id_" tests="1" failures="0" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite><testsuite name="addition" id="_id_" tests="3" failures="1" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/><testcase name="1 + 2 == 5" id="_testcase_id_"><failure message="3 == 5" type="test">Test Failed
-  Expression: 1 + 2 == 5
-   Evaluated: 3 == 5</failure></testcase><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite><testsuite name="addition/negative addition" id="_id_" tests="3" failures="1" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/><testcase name="1 + -2 == 1" id="_testcase_id_"><failure message="-1 == 1" type="test">Test Failed
+   Evaluated: 2 == 5</failure></testcase><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite><testsuite name="Math/addition/negative addition" id="_id_" tests="3" failures="1" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/><testcase name="1 + -2 == 1" id="_testcase_id_"><failure message="-1 == 1" type="test">Test Failed
   Expression: 1 + -2 == 1
-   Evaluated: -1 == 1</failure></testcase><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite><testsuite name="other" id="_id_" tests="0" failures="0" errors="3"><testcase name="sqrt(-1)" id="_testcase_id_"><skip/></testcase><error message="Inf" type="String">
+   Evaluated: -1 == 1</failure></testcase><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite><testsuite name="Math/addition" id="_id_" tests="3" failures="1" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/><testcase name="1 + 2 == 5" id="_testcase_id_"><failure message="3 == 5" type="test">Test Failed
+  Expression: 1 + 2 == 5
+   Evaluated: 3 == 5</failure></testcase><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite><testsuite name="Math/other" id="_id_" tests="0" failures="0" errors="3"><testcase name="sqrt(-1)" id="_testcase_id_"><skip/></testcase><error message="Inf" type="String">
 </error><error message="ErrorException(&quot;Nooo&quot;)" type="String">
 </error><error message="DimensionMismatch(&quot;B has leading dimension 4, but needs 2&quot;)" type="String">
-</error></testsuite><testsuite name="using function from a module" id="_id_" tests="1" failures="0" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite></testsuites>
+</error></testsuite><testsuite name="Math/using function from a module" id="_id_" tests="1" failures="0" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite><testsuite name="Math" id="_id_" tests="3" failures="1" errors="0"><testcase name="pass (info lost)" id="_testcase_id_"/><testcase name="sqrt(20) == 5" id="_testcase_id_"><failure message="4.47213595499958 == 5" type="test">Test Failed
+  Expression: sqrt(20) == 5
+   Evaluated: 4.47213595499958 == 5</failure></testcase><testcase name="pass (info lost)" id="_testcase_id_"/></testsuite></testsuites>
 
