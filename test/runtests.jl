@@ -30,6 +30,12 @@ end
     @test_reference "references/complexexample.txt" read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> clean_report
 end
 
+@testset "Chained failing test - Issue #25" begin
+    ts = @testset ReportingTestSet begin
+            @test 1==1 && 1==0
+    end
+    @test report(ts) isa Any  # Would fail before #25
+end
 
 @testset "any_problems" begin
     @test any_problems(Pass(Symbol(), nothing, nothing, nothing)) == false

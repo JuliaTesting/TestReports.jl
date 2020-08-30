@@ -2,9 +2,7 @@
 # https://www.ibm.com/support/knowledgecenter/en/SSQ2R2_9.5.0/com.ibm.rsar.analysis.codereview.cobol.doc/topics/cac_useresults_junit.html
 # http://help.catchsoftware.com/display/ET/JUnit+Format
 
-function set_attribute!(node, attr, val)
-    link!(node, AttributeNode(attr, string(val)))
-end
+set_attribute!(node, attr, val) = setindex!(node, string(val), attr)
 
 function testsuites_xml(name, id, ntests, nfails, nerrors, x_children)
     x_testsuite = ElementNode("testsuites")
@@ -117,7 +115,8 @@ function to_xml(res::Pass)
 end
 
 function to_xml(v::Fail)
-    x_failure = failure_xml(string(v.data), string(v.test_type), string(v))
+    data = v.data === nothing ? "" : v.data  # Needed for V1.0
+    x_failure = failure_xml(string(data), string(v.test_type), string(v))
     x_testcase = testcase_xml(v, [x_failure])
     x_testcase, 1, 1, 0
 end
