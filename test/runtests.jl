@@ -208,10 +208,12 @@ end
     new_path = joinpath(pwd(), "NonExistentDir")
     TestReports.test(TEST_PKG.name; logfilename="testlog.xml", logfilepath=new_path)
     @test isfile(joinpath(new_path,"testlog.xml"))
+    Pkg.rm(TEST_PKG.name)
 
     # Multiple package test
     temp_pkg_dir() do tmp
         copy_test_package(tmp, "PassingTests")
+        Pkg.activate(tmp)
         Pkg.develop(Pkg.PackageSpec(path=joinpath(tmp, "PassingTests")))
         Pkg.add(TEST_PKG.name)
         TestReports.test([TEST_PKG.name, "PassingTests"])
@@ -220,6 +222,8 @@ end
         TestReports.test([TEST_PKG.name, "PassingTests"]; logfilename=["testlog1.xml", "testlog2.xml"])
         @test isfile(joinpath(pwd(),"testlog1.xml"))
         @test isfile(joinpath(pwd(),"testlog2.xml"))
+        Pkg.rm("PassingTests")
+        Pkg.rm(TEST_PKG.name)
     end
 
     # Errors
@@ -228,7 +232,6 @@ end
     @test_throws TypeError TestReports.test(TEST_PKG.name; logfilename=["ThisShouldJustBeAString.xml"])
 
     # Tidy up
-    Pkg.rm(TEST_PKG.name)
     rm.(joinpath.(Ref(pwd()), ["testlog.xml", "changedname.xml", "Example_testlog.xml", "PassingTests_testlog.xml", "testlog1.xml", "testlog2.xml"]))
     rm(new_path, recursive=true)
 end
