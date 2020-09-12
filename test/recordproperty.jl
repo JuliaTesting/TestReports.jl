@@ -87,7 +87,7 @@ end
             TestReports.test(pkg)
         end
         logfile = joinpath(@__DIR__, "testlog.xml")
-        @test_reference "references/test_with_properties.txt" open(f->read(f, String), logfile) |> clean_report
+        @test_reference "references/test_with_properties.txt" open(f->read(f, String), logfile) |> clean_output
     end
 
     # Test for warning when ID set twice

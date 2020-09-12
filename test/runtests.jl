@@ -12,16 +12,18 @@ include("testsets.jl")
 include("recordproperty.jl")
 
 @testset "SingleNest" begin
-    @test_reference "references/singlenest.txt" read(`$(Base.julia_cmd()) -e "using Test; using TestReports; (@testset ReportingTestSet \"blah\" begin @testset \"a\" begin @test 1 ==1 end end) |> report |> print"`, String) |> clean_report
+    @test_reference "references/singlenest.txt" read(`$(Base.julia_cmd()) -e "using Test; using TestReports; (@testset ReportingTestSet \"blah\" begin @testset \"a\" begin @test 1 ==1 end end) |> report |> print"`, String) |>  clean_output
 end
 
 @testset "Complex Example" begin
-    @test_reference "references/complexexample.txt" read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> clean_report
+    @test_reference "references/complexexample.txt" read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> clean_output
 end
 
 @testset "Chained failing test - Issue #25" begin
     ts = @testset ReportingTestSet begin
+        ts = @testset ReportingTestSet begin
             @test 1==1 && 1==0
+        end
     end
     @test report(ts) isa Any  # Would fail before #25
 end
@@ -178,6 +180,33 @@ end
     # Tidy up
     rm.(joinpath.(Ref(pwd()), ["testlog.xml", "changedname.xml", "Example_testlog.xml", "PassingTests_testlog.xml", "testlog1.xml", "testlog2.xml"]))
     rm(new_path, recursive=true)
+end
+
+@testset "record - check_ts_structure" begin
+    # No top level testset
+    ts = @testset NoFlattenReportingTestSet begin
+        @test true
+    end
+    @test_throws ArgumentError TestReports.check_ts_structure(ts)
+
+    # Not flattened
+    ts = @testset NoFlattenReportingTestSet begin
+        @testset NoFlattenReportingTestSet begin
+            @test true
+            @testset NoFlattenReportingTestSet begin
+                @test true
+            end
+        end
+    end
+    @test_throws ArgumentError TestReports.check_ts_structure(ts)
+
+    # Correct structure
+    ts = @testset NoFlattenReportingTestSet begin
+        @testset NoFlattenReportingTestSet begin
+            @test true
+        end
+    end
+    @test TestReports.check_ts_structure(ts) isa Any # Doesn't error
 end
 
 # clean up locally cached registry

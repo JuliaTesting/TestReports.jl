@@ -1,4 +1,25 @@
+"""
+    ReportingTestSet
 
+Custom `AbstractTestSet` type designed to be used by `TestReports.jl` for
+creation of JUnit XMLs.
+
+Does not throw an error when a test fails or has an error. Upon `finish`ing,
+a `ReportingTestSet` will display the default test output, and then flatten
+to a structure that is suitable for report generation.
+
+It is designed to be wrapped around a package's `runtests.jl` file and this
+is assumed when both the test results are displayed and when the `TestSet` is
+flatted upon `finish`. See `bin/reporttests.jl` for an example of this use.
+`ReportingTestSet`s are not designed to be used directly in a package's tests,
+and this is not recommended or supported.
+
+A `ReportingTestSet` has the `description` and `results` fields as per a
+`DefaultTestSet`, and has an additional `properties` field which is used
+to record properties to be inserted into the report.
+
+See also: [`flatten_results!`](@ref), [`recordproperty`](@ref), [`report`](@ref)
+"""
 mutable struct ReportingTestSet <: AbstractTestSet
     description::String
     results::Vector
@@ -18,6 +39,9 @@ function finish(ts::ReportingTestSet)
         record(parent_ts, ts)
         return ts
     end
+
+    # Display before flattening to match Pkg.test output
+    display_reporting_testset(ts)
 
     # We are the top level, lets do this
     flatten_results!(ts)

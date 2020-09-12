@@ -1,23 +1,6 @@
 using Test
-import Test: finish, record, AbstractTestSet, Result, get_testset_depth, get_testset,
-    Pass, Fail, Broken, Error
+import Test: AbstractTestSet, Result, Pass, Fail, Broken, Error
 using TestReports
-
-mutable struct NoFlattenReportingTestSet <: AbstractTestSet
-    description::AbstractString
-    results::Vector
-end
-NoFlattenReportingTestSet(desc) = NoFlattenReportingTestSet(desc, [])
-record(ts::NoFlattenReportingTestSet, t) = (push!(ts.results, t); t)
-function finish(ts::NoFlattenReportingTestSet)
-    if get_testset_depth() != 0
-        # Attach this test set to the parent test set
-        parent_ts = get_testset()
-        record(parent_ts, ts)
-        return ts
-    end
-    return ts
-end
 
 @testset "handle_top_level_results!" begin
     # Simple top level resuls
