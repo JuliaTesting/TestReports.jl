@@ -120,6 +120,7 @@ That is, the results of the top level `TestSet` must all be `AbstractTestSet`s,
 and the results of those `TestSet`s must all be `Results`.
 """
 function report(ts::AbstractTestSet)
+    check_ts_structure(ts)
     total_ntests = 0
     total_nfails = 0
     total_nerrors = 0
@@ -140,6 +141,20 @@ function report(ts::AbstractTestSet)
                                          x_testsuites))
     
     xdoc
+end
+
+"""
+    check_ts_structure(ts::AbstractTestSet)
+
+Throws an exception if `ts` does not have the right structure for `report`.
+
+See also: [`report`](@ref)
+"""
+function check_ts_structure(ts::AbstractTestSet)
+    !all(isa.(ts.results, AbstractTestSet)) && throw(ArgumentError("Results of ts must all be AbstractTestSets. See documentation for `report`."))
+    for result in ts.results
+        !all(isa.(result.results, Result)) && throw(ArgumentError("Results of each AbstractTestSet in ts.results must all be Results. See documentation for `report`."))
+    end
 end
 
 """

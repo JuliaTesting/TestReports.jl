@@ -1,4 +1,5 @@
 using Pkg, Test, LibGit2
+import Test: finish, record, AbstractTestSet, get_testset_depth, get_testset
 
 # Strip the filenames from the string, so that the reference strings work on different computers
 strip_filepaths(str) = replace(str, r" at .*\d+$"m => "")
@@ -12,7 +13,10 @@ replace_Int32s(str) = replace(str, "Int32" => "Int64")
 # remove stacktraces so reference strings work for different Julia versions
 remove_stacktraces(str) = replace(str, r"(Stacktrace:)[^<]*" => "")
 
-const clean_report = replace_Int32s ∘ replace_windows_filepaths ∘ strip_filepaths ∘ remove_stacktraces
+# remove test output - remove everything before "<?xml version"
+remove_test_output(str) = replace(str, r"^[\S\s]*(?=(<\?xml version))" => "")
+
+const clean_output = replace_Int32s ∘ replace_windows_filepaths ∘ strip_filepaths ∘ remove_stacktraces ∘ remove_test_output
 
 """
 `copy_test_package` copied from [`Pkg.jl/test/utils.jl`](https://github.com/JuliaLang/Pkg.jl/blob/v1.4.2/test/utils.jl#L209).
@@ -145,4 +149,21 @@ function test_active_package_expected_fail(pkg::String)
         Pkg.activate(joinpath(tmp, pkg))
         @test_throws TestReports.PkgTestError TestReports.test(pkg)
     end
+end
+
+# Test TestSets
+mutable struct NoFlattenReportingTestSet <: AbstractTestSet
+    description::AbstractString
+    results::Vector
+end
+NoFlattenReportingTestSet(desc) = NoFlattenReportingTestSet(desc, [])
+record(ts::NoFlattenReportingTestSet, t) = (push!(ts.results, t); t)
+function finish(ts::NoFlattenReportingTestSet)
+    if get_testset_depth() != 0
+        # Attach this test set to the parent test set
+        parent_ts = get_testset()
+        record(parent_ts, ts)
+        return ts
+    end
+    return ts
 end
