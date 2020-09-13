@@ -1,9 +1,19 @@
 # Format is defined by
-# https://www.ibm.com/support/knowledgecenter/en/SSQ2R2_9.5.0/com.ibm.rsar.analysis.codereview.cobol.doc/topics/cac_useresults_junit.html
+# https://www.ibm.com/support/knowledgecenter/en/SSQ2R2_14.2.0/com.ibm.rsar.analysis.codereview.cobol.doc/topics/cac_useresults_junit.html
 # http://help.catchsoftware.com/display/ET/JUnit+Format
 
+"""
+    set_attribute!(node, attr, val)
+
+Add the attritube with name `attr` and value `val` to `node`.
+"""
 set_attribute!(node, attr, val) = setindex!(node, string(val), attr)
 
+"""
+    testsuites_xml(name, id, ntests, nfails, nerrors, x_children)
+
+Create the testsuites element of a JUnit XML.
+"""
 function testsuites_xml(name, id, ntests, nfails, nerrors, x_children)
     x_testsuite = ElementNode("testsuites")
     link!.(Ref(x_testsuite), x_children)
@@ -15,7 +25,11 @@ function testsuites_xml(name, id, ntests, nfails, nerrors, x_children)
     x_testsuite
 end
 
+"""
+    testsuite_xml(name, id, ntests, nfails, nerrors, x_children)
 
+Create a testsuite element of a JUnit XML.
+"""
 function testsuite_xml(name, id, ntests, nfails, nerrors, x_children)
     x_testsuite = ElementNode("testsuite")
     link!.(Ref(x_testsuite), x_children)
@@ -27,6 +41,13 @@ function testsuite_xml(name, id, ntests, nfails, nerrors, x_children)
     x_testsuite
 end
 
+"""
+    testcase_xml(name, id, x_children)
+
+Create a testcase element of a JUnit XML.
+
+This is the generic form (with name, id and children) that is used by other methods.
+"""
 function testcase_xml(name, id, x_children)
     x_tc = ElementNode("testcase")
     link!.(Ref(x_tc), x_children)
@@ -35,8 +56,21 @@ function testcase_xml(name, id, x_children)
     x_tc
 end
 
+"""
+    testcase_xml(v::Result, childs)
+
+Create a testcase element of a JUnit XML for the result `v`.
+
+The original expression of the test is used as the name, whilst the id is defaulted to
+_testcase_id_.
+"""
 testcase_xml(v::Result, childs) = testcase_xml(string(v.orig_expr), "_testcase_id_", childs)
 
+"""
+    failure_xml(message, test_type, content)
+
+Create a failure node (which will be the child of a testcase).
+"""
 function failure_xml(message, test_type, content)
     x_fail = ElementNode("failure")
     set_attribute!(x_fail, "message", message)
@@ -45,10 +79,20 @@ function failure_xml(message, test_type, content)
     x_fail
 end
 
+"""
+    skip_xml()
+
+Create a skip node (which will be the child of a testcase).
+"""
 function skip_xml()
     ElementNode("skip")
 end
 
+"""
+    failure_xml(message, test_type, content)
+
+Create an error node (which will be the child of a testcase).
+"""
 function error_xml(message, ex_type, content)
     x_fail = ElementNode("error")
     set_attribute!(x_fail, "message", message)
@@ -57,16 +101,23 @@ function error_xml(message, ex_type, content)
     x_fail
 end
 
-
-
 #####################
 
 """
-    report(ts)
+    report(ts::AbstractTestSet)
 
-Will produce an `XMLDocument` that contains a report about the testset's results.
-In theory works on many kinds of testsets.
-Primarily intended for use on `ReportingTestSet`s.
+Will produce an `XMLDocument` that contains a report about the `TestSet`'s results.
+This report will follow the JUnit XML schema.
+
+In theory this works on many kinds of `TestSet`s, but it is primarily intended for use on
+`ReportingTestSet`s. To report correctly, the `TestSet` must have the following structure:
+
+    AbstractTestSet
+      └─ AbstractTestSet
+           └─ Result
+
+That is, the results of the top level `TestSet` must all be `AbstractTestSet`s,
+and the results of those `TestSet`s must all be `Results`.
 """
 function report(ts::AbstractTestSet)
     total_ntests = 0
@@ -91,7 +142,14 @@ function report(ts::AbstractTestSet)
     xdoc
 end
 
-"testsuite"
+"""
+    to_xml(ts::AbstractTestSet)
+
+Create a testsuite node from an `AbstractTestSet`, by creating nodes for each result
+in `ts.results`. For creating a JUnit XML, all results must be `Result`s, that is
+they cannot be `AbstractTestSet`s, as the XML cannot have one testsuite nested inside
+another.
+"""
 function to_xml(ts::AbstractTestSet)
     total_ntests = 0
     total_nfails = 0
@@ -111,17 +169,25 @@ function to_xml(ts::AbstractTestSet)
     x_testsuite, total_ntests, total_nfails, total_nerrors
 end
 
+"""
+    to_xml(res::Pass)
+    to_xml(res::Fail)
+    to_xml(res::Broken)
+    to_xml(res::Error)
 
+Create a testcase node from the result and return it along with
+information on number of tests.
+"""
 function to_xml(res::Pass)
     x_testcase = testcase_xml("pass (info lost)", "_testcase_id_", [])
-    x_testcase, 1, 0, 0
+    x_testcase, 1, 0, 0  # Increment number of tests by 1
 end
 
 function to_xml(v::Fail)
     data = v.data === nothing ? "" : v.data  # Needed for V1.0
     x_failure = failure_xml(string(data), string(v.test_type), string(v))
     x_testcase = testcase_xml(v, [x_failure])
-    x_testcase, 1, 1, 0
+    x_testcase, 1, 1, 0  # Increment number of tests and number of failures by 1
 end
 
 function to_xml(v::Broken)
@@ -131,7 +197,7 @@ end
 
 function to_xml(v::Error)
     x_testcase = error_xml(string(v.value), typeof(v.value), v.backtrace)
-    x_testcase, 0,0,1
+    x_testcase, 0, 0, 1  # Increment number of errors by 1
 end
 
 """
