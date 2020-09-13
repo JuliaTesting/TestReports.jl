@@ -4,3 +4,5 @@
 **.swp
 **testlog.xml
 /test/registries/*
+docs/build
+*Manifest.toml

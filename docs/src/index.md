@@ -1,9 +1,6 @@
-# TestReports
+# TestReports.jl
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliatesting.github.io/TestReports.jl/stable)
-[![Build Status](https://travis-ci.com/JuliaTesting/TestReports.jl.svg?branch=master)](https://travis-ci.com/JuliaTesting/TestReports.jl)
-[![Codecov](https://codecov.io/gh/JuliaTesting/TestReports.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaTesting/TestReports.jl)
-[![ColPrac: Contributor's Guide on Collaborative Practices for Community Packages](https://img.shields.io/badge/ColPrac-Contributor's%20Guide-blueviolet)](https://github.com/SciML/ColPrac)
+*A JUnit XML test report generator for Julia*
 
 This package produces JUnit XML test reports. It is for use with your CI tooling of choice,
 for example a CI tool like GoCD consumes reports in this format and gives back HTML reports.
@@ -12,8 +9,7 @@ for example a CI tool like GoCD consumes reports in this format and gives back H
 
 The reporting is designed to enable you to write your unit tests in the standard Julia way,
 that is using `test/runtests.jl` as the entry point to your tests and with default `TestSet`
-types. In theory, it should also work with custom `TestSet` types - see the
-[Manual](https://juliatesting.github.io/TestReports.jl/stable) for 
+types. In theory, it should also work with custom `TestSet` types - see the [Manual](@ref) for 
 further information.
 
 To test and generate a report for your package:
@@ -42,12 +38,16 @@ using TestReports
 end
 ```
 
+## The JUnit XML Schema
+
+The JUnit XML schema is a format used by many CI tools. For a definition of the schema, see [here](https://www.ibm.com/support/knowledgecenter/en/SSQ2R2_14.2.0/com.ibm.rsar.analysis.codereview.cobol.doc/topics/cac_useresults_junit.html).
+
 ## Example of Use
 
 Below is a screen shot of TestReports being used with [GoCD](https://github.com/gocd/gocd/),
 to report an test failure in [DataDepsGenerators.jl](https://github.com/oxinabox/DataDepsGenerators.jl/).
 
-![Screenshot of GoCD web-interface showing failing tests](docs/src/assets/FailingTests.PNG)
+![Screenshot of GoCD web-interface showing failing tests](assets/FailingTests.PNG)
 
 The corresponding `testlog.xml` file (after pretty printing) is below.
 
@@ -78,7 +78,3 @@ The corresponding `testlog.xml` file (after pretty printing) is below.
   </testsuite>
 </testsuites>
 ```
-### Using directly
-I actually don't recommend using this directly in your tests.
-It is more flexible to just keep using the default testset type,
-and then use something like the Runner script to generate a wrapper of your tests with this testset around it.
