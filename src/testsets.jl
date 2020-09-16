@@ -186,14 +186,17 @@ end
 
 """
     add_to_ts_default!(ts_default::DefaultTestSet, result::Result)
+    add_to_ts_default!(ts_default::DefaultTestSet, ts::AbstractTestSet)
     add_to_ts_default!(ts_default::DefaultTestSet, ts::ReportingTestSet)
 
 Populate `ts_default` with the supplied variable. If the variable is a `Result`
-then it is recorded. If it is a `ReportingTestSet` then a new `DefaultTestSet`
-with matching description is created, populated by recursively calling this
-function and then added to the results of `ts_default`.
+or an `AbstractTestSet` (but not a `ReportingTestSet`) then it is `record`ed.
+If it is a `ReportingTestSet` then a new `DefaultTestSet` with matching description
+is created, populated by recursively calling this function and then added to the
+results of `ts_default`.
 """
 add_to_ts_default!(ts_default::DefaultTestSet, result::Result) = record(ts_default, result)
+add_to_ts_default!(ts_default::DefaultTestSet, ts::AbstractTestSet) = record(ts_default, ts)
 function add_to_ts_default!(ts_default::DefaultTestSet, ts::ReportingTestSet)
     sub_ts = DefaultTestSet(ts.description)
     add_to_ts_default!.(Ref(sub_ts), ts.results)

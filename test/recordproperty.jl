@@ -1,6 +1,6 @@
 using EzXML
 using Test
-import Test: DefaultTestSet, AbstractTestSet, finish, record, get_testset_depth, get_testset
+import Test: DefaultTestSet, AbstractTestSet, finish, record, get_testset_depth, get_testset, Error
 using ReferenceTests
 using TestReports
 
@@ -17,6 +17,7 @@ function finish(ts::NoPropsReportingTestSet)
         record(parent_ts, ts)
         return ts
     end
+    return ts
 end
 
 @testset "recordproperty" begin
@@ -128,6 +129,19 @@ end
         # Force flattening as ts doesn't finish fully as it is not the top level testset
         fail_text = r"Properties of testset Outer can not be added to child testset Inner as it is not a ReportingTestSet."
         @test_logs (:warn, fail_text) TestReports.flatten_results!(ts)
+
+        # Test for ReportingTestSet setting a property inside of a parent custom testset
+        ts = @testset ReportingTestSet "TestReports Wrapper" begin
+            @testset NoPropsReportingTestSet "Custom" begin
+                ts = @testset ReportingTestSet "Inner" begin
+                    recordproperty("ID", "42")
+                    @test 1==1
+                end
+            end
+        end
+        # Force flattening as ts doesn't finish fully as it is not the top level testset
+        TestReports.flatten_results!(ts)
+        @test ts.results[1].properties["ID"] == "42"
     end
 
     @testset "Check no interference with default test set" begin

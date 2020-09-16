@@ -3,13 +3,13 @@ import Test: finish, record, AbstractTestSet, Result, get_testset_depth, get_tes
     Pass, Fail, Broken, Error
 using TestReports
 
-mutable struct NoFlattenRecordingTestSet <: AbstractTestSet
+mutable struct NoFlattenReportingTestSet <: AbstractTestSet
     description::AbstractString
     results::Vector
 end
-NoFlattenRecordingTestSet(desc) = NoFlattenRecordingTestSet(desc, [])
-record(ts::NoFlattenRecordingTestSet, t) = (push!(ts.results, t); t)
-function finish(ts::NoFlattenRecordingTestSet)
+NoFlattenReportingTestSet(desc) = NoFlattenReportingTestSet(desc, [])
+record(ts::NoFlattenReportingTestSet, t) = (push!(ts.results, t); t)
+function finish(ts::NoFlattenReportingTestSet)
     if get_testset_depth() != 0
         # Attach this test set to the parent test set
         parent_ts = get_testset()
@@ -21,7 +21,7 @@ end
 
 @testset "handle_top_level_results!" begin
     # Simple top level resuls
-    ts = @testset NoFlattenRecordingTestSet "" begin
+    ts = @testset NoFlattenReportingTestSet "" begin
         @test 1 == 1
         @test 2 == 2
     end
@@ -33,7 +33,7 @@ end
     @test all(isa.(ts.results[1].results, Result))
 
     # Mix of top level testset and results
-    ts = @testset NoFlattenRecordingTestSet "" begin
+    ts = @testset NoFlattenReportingTestSet "" begin
         @test 1 == 1
         @test 2 == 2
         @testset "Inner" begin
@@ -52,7 +52,7 @@ end
     @test ts.results[2].description == "Inner"
 
     # Testset only
-    ts = @testset NoFlattenRecordingTestSet "" begin
+    ts = @testset NoFlattenReportingTestSet "" begin
         @testset "Shouldn't Change" begin
             @test 1 == 1
             @test 2 == 2
@@ -66,7 +66,7 @@ end
 
 @testset "_flatten_results!" begin
     # Single nested test
-    ts = @testset NoFlattenRecordingTestSet "Nested" begin
+    ts = @testset NoFlattenReportingTestSet "Nested" begin
         @testset "1" begin
             @testset "2" begin
                 @testset "3" begin
@@ -81,7 +81,7 @@ end
     @test flattened_results[1].description == "Nested/1/2/3"
 
     # Different level nested tests
-    ts = @testset NoFlattenRecordingTestSet "Nested" begin
+    ts = @testset NoFlattenReportingTestSet "Nested" begin
         @testset "1" begin
             @testset "2" begin
                 @testset "3" begin
@@ -125,6 +125,10 @@ end
     # Test fail/error in results doesn't throw error
     Test.record(ts_reporting, Fail(Symbol(), 1, "1", "1", LineNumberNode(1)))
     @test TestReports.display_reporting_testset(ts_reporting) == nothing
+
+    # Test for custom testsets (Issue #36)
+    TestReports.add_to_ts_default!(ts_default, NoFlattenReportingTestSet(""))
+    @test ts_default.results[end] isa NoFlattenReportingTestSet
 end
 
 @testset "any_problems" begin
