@@ -129,7 +129,8 @@ end
 
 function to_xml(v::Error)
     buff = IOBuffer()
-    Base.show_backtrace(buff, scrub_backtrace(backtrace()))
+    print(buff, "\n")
+    join(buff, ("  " * line for line in split(v.backtrace, "\n")), "\n")
     backtrace_str = String(take!(buff))
 
     x_testcase = error_xml(string(v.value), typeof(v.value), backtrace_str)
