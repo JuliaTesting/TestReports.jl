@@ -128,11 +128,7 @@ function to_xml(v::Broken)
 end
 
 function to_xml(v::Error)
-    buff = IOBuffer()
-    Base.show_backtrace(buff, scrub_backtrace(backtrace()))
-    backtrace_str = String(take!(buff))
-
-    x_testcase = error_xml(string(v.value), typeof(v.value), backtrace_str)
+    x_testcase = error_xml(string(v.value), typeof(v.value), v.backtrace)
     x_testcase, 0,0,1
 end
 
