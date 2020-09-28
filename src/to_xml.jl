@@ -96,8 +96,10 @@ function to_xml(ts::AbstractTestSet)
     total_ntests = 0
     total_nfails = 0
     total_nerrors = 0
-    x_testcases = map(ts.results) do result
+    x_testcases = map(enumerate(ts.results)) do (i, result)
         x_testcase, ntests, nfails, nerrors = to_xml(result)
+        set_attribute!(x_testcase, "classname", ts.description)
+        set_attribute!(x_testcase, "name", x_testcase["name"] * " ($i)")
         total_ntests += ntests
         total_nfails += nfails
         total_nerrors += nerrors
