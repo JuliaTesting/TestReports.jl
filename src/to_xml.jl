@@ -101,6 +101,8 @@ function to_xml(ts::AbstractTestSet)
         total_ntests += ntests
         total_nfails += nfails
         total_nerrors += nerrors
+        set_attribute!(x_testcase, "classname", ts.description)
+        result isa Pass && set_attribute!(x_testcase, "name", x_testcase["name"] * " (Test $total_ntests)")
         x_testcase
     end
 
