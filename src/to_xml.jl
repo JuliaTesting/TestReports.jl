@@ -184,8 +184,7 @@ function to_xml(res::Pass)
 end
 
 function to_xml(v::Fail)
-    data = v.data === nothing ? "" : v.data  # Needed for V1.0
-    x_failure = failure_xml(string(data), string(v.test_type), string(v))
+    x_failure = failure_xml(get_failure_message(v), string(v.test_type), string(v))
     x_testcase = testcase_xml(v, [x_failure])
     x_testcase, 1, 1, 0  # Increment number of tests and number of failures by 1
 end
@@ -196,8 +195,51 @@ function to_xml(v::Broken)
 end
 
 function to_xml(v::Error)
-    x_testcase = error_xml(string(v.value), typeof(v.value), v.backtrace)
+    message, type = get_error_info(v)
+    x_testcase = error_xml(message, type, v.backtrace)
     x_testcase, 0, 0, 1  # Increment number of errors by 1
+end
+
+"""
+    get_error_info(v::Error)
+
+Return message and type of error for testcase attribute. Uses `test_type`
+field to determine what caused the original error.
+"""
+function get_error_info(v::Error)
+    if v.test_type == :test_nonbool
+        msg = "Expression evaluated to non-Boolean"
+        type = "Expression evaluated to non-Boolean"
+    elseif v.test_type == :test_unbroken
+        msg = "Got correct result, please change to @test if no longer broken."
+        type = "Unexpected Pass"
+    elseif v.test_type == :nontest_error
+        msg = "Got exception outside of a @test"
+        type = typeof(eval(Meta.parse(v.value)))
+    else
+        err = eval(Meta.parse(v.value))
+        msg = sprint(showerror, err)
+        type = typeof(err)
+    end
+    return msg, type
+end
+
+"""
+get_failure_message(v::Fail)
+
+Return message for failed test testcase attribute. Uses `test_type`
+field to determine what caused the original failure.
+"""
+function get_failure_message(v::Fail)
+    if v.test_type == :test
+        # Normal test failure, use test data itself
+        data = v.data === nothing ? "" : v.data  # Needed for V1.0
+        return string(data)
+    elseif v.test_type == :test_throws_nothing
+        return "No exception thrown"
+    elseif v.test_type == :test_throws_wrong
+        return "Wrong exception type thrown"
+    end
 end
 
 """

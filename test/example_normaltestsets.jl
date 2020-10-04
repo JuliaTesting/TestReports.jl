@@ -30,7 +30,17 @@ using Base.Threads
         @test 1/0 # not a real test
         @test 1 == error("Nooo") # error
         @test 1 == rand(2,2)\rand(4,4) # deep error
+        @test_broken true
 
+    end
+
+    @testset "Error outside of tests" begin
+        error("Outside of tests")
+    end
+
+    @testset "Different failures" begin
+        @test_throws DimensionMismatch throw(ArgumentError("1"))
+        @test_throws DimensionMismatch true
     end
 
     @testset "using function from a module" begin
