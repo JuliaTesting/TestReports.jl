@@ -67,6 +67,14 @@ const TEST_PKG = (name = "Example", uuid = UUID("7876af07-990d-54b4-ab0e-2369062
             end
         end
     end
+
+    @testset "Non-package error in runner" begin
+        pkgname = "PassingTests"
+        Pkg.develop(Pkg.PackageSpec(path=joinpath(@__DIR__, "test_packages", pkgname)))
+        # Pass non-existing argument to julia to make run command fail
+        @test_throws TestReports.PkgTestError TestReports.test(pkgname, julia_args=`--doesnt-exist`)
+        Pkg.rm("PassingTests")
+    end
 end
 
 if VERSION < v"1.2.0"
