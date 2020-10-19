@@ -4,22 +4,6 @@ import Test: DefaultTestSet, AbstractTestSet, finish, record, get_testset_depth,
 using ReferenceTests
 using TestReports
 
-mutable struct NoPropsReportingTestSet <: AbstractTestSet
-    description::AbstractString
-    results::Vector
-end
-NoPropsReportingTestSet(desc) = NoPropsReportingTestSet(desc, [])
-NoPropsReportingTestSet(desc, results) = NoPropsReportingTestSet(desc, result)
-record(ts::NoPropsReportingTestSet, t) = (push!(ts.results, t); t)
-function finish(ts::NoPropsReportingTestSet)
-    if get_testset_depth() != 0
-        parent_ts = get_testset()
-        record(parent_ts, ts)
-        return ts
-    end
-    return ts
-end
-
 @testset "recordproperty" begin
     @testset "Property recording" begin
         # Test for blanks in properties if nothing given 
@@ -100,7 +84,7 @@ end
                 recordproperty("ID", "42")
             end
         end
-        @test ts.results[1].results[1] isa Error
+        @test ts.results[1].results[1] isa TestReports.ReportingResult{Error}
 
         # Test warning (when finishing ts) for parent ID being overwritten by child
         ts = @testset ReportingTestSet "" begin
@@ -121,7 +105,7 @@ end
         ts = @testset ReportingTestSet "" begin
             @testset ReportingTestSet "Outer" begin
                 recordproperty("ID", "42")
-                @testset NoPropsReportingTestSet "Inner" begin
+                @testset TestReportingTestSet "Inner" begin
                     @test 1==1
                 end
             end
@@ -132,7 +116,7 @@ end
 
         # Test for ReportingTestSet setting a property inside of a parent custom testset
         ts = @testset ReportingTestSet "TestReports Wrapper" begin
-            @testset NoPropsReportingTestSet "Custom" begin
+            @testset TestReportingTestSet "Custom" begin
                 ts = @testset ReportingTestSet "Inner" begin
                     recordproperty("ID", "42")
                     @test 1==1

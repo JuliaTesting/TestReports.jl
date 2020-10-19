@@ -1,10 +1,11 @@
+using Dates
 using Test
 import Test: AbstractTestSet, Result, Pass, Fail, Broken, Error
 using TestReports
 
 @testset "handle_top_level_results!" begin
     # Simple top level resuls
-    ts = @testset NoFlattenReportingTestSet "" begin
+    ts = @testset TestReportingTestSet "" begin
         @test 1 == 1
         @test 2 == 2
     end
@@ -16,7 +17,7 @@ using TestReports
     @test all(isa.(ts.results[1].results, Result))
 
     # Mix of top level testset and results
-    ts = @testset NoFlattenReportingTestSet "" begin
+    ts = @testset TestReportingTestSet "" begin
         @test 1 == 1
         @test 2 == 2
         @testset "Inner" begin
@@ -35,7 +36,7 @@ using TestReports
     @test ts.results[2].description == "Inner"
 
     # Testset only
-    ts = @testset NoFlattenReportingTestSet "" begin
+    ts = @testset TestReportingTestSet "" begin
         @testset "Shouldn't Change" begin
             @test 1 == 1
             @test 2 == 2
@@ -49,7 +50,7 @@ end
 
 @testset "_flatten_results!" begin
     # Single nested test
-    ts = @testset NoFlattenReportingTestSet "Nested" begin
+    ts = @testset TestReportingTestSet "Nested" begin
         @testset "1" begin
             @testset "2" begin
                 @testset "3" begin
@@ -64,7 +65,7 @@ end
     @test flattened_results[1].description == "Nested/1/2/3"
 
     # Different level nested tests
-    ts = @testset NoFlattenReportingTestSet "Nested" begin
+    ts = @testset TestReportingTestSet "Nested" begin
         @testset "1" begin
             @testset "2" begin
                 @testset "3" begin
@@ -110,8 +111,8 @@ end
     @test TestReports.display_reporting_testset(ts_reporting) == nothing
 
     # Test for custom testsets (Issue #36)
-    TestReports.add_to_ts_default!(ts_default, NoFlattenReportingTestSet(""))
-    @test ts_default.results[end] isa NoFlattenReportingTestSet
+    TestReports.add_to_ts_default!(ts_default, TestReportingTestSet(""))
+    @test ts_default.results[end] isa TestReportingTestSet
 end
 
 @testset "any_problems" begin
@@ -141,4 +142,40 @@ end
     """
 
     @test run(`$(Base.julia_cmd()) -e $(pass_code)`) isa Any #this line would error if fail
+end
+
+@testset "Timing" begin
+    # Test start time
+    ts = @testset ReportingTestSet begin
+        @test true
+    end 
+    @test ts.start_time <= Dates.now()
+
+    # Unit test time
+    duration = 0.2
+    ts = @testset ReportingTestSet begin
+        @test (sleep(duration); true)
+        @test (sleep(duration); true)
+    end 
+
+    @test ts.results[1].time_taken >= Millisecond(duration * 1000)
+    @test ts.results[2].time_taken >= Millisecond(duration * 1000)
+    @test ts.time_taken >= ts.results[1].time_taken + ts.results[2].time_taken
+end
+
+@testset "Struct equality checks" begin
+    # Equality
+    result = Pass(:test, 0, 0, 0)
+    res1 = TestReports.ReportingResult(result, Millisecond(0))
+    res2 = TestReports.ReportingResult(result, Millisecond(1))
+    @test res1 == res2
+    @test hash(res1) == hash(res2)
+
+    # Inequality
+    result1 = Pass(:test, 0, 0, 0)
+    result2 = Pass(:test, 0, 0, 1)
+    res1 = TestReports.ReportingResult(result1, Millisecond(0))
+    res2 = TestReports.ReportingResult(result2, Millisecond(0))
+    @test res1 != res2
+    @test hash(res1) != hash(res2)
 end

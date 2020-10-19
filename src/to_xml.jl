@@ -1,13 +1,31 @@
+using Printf
+
 # Format is defined by
 # https://www.ibm.com/support/knowledgecenter/en/SSQ2R2_14.2.0/com.ibm.rsar.analysis.codereview.cobol.doc/topics/cac_useresults_junit.html
 # http://help.catchsoftware.com/display/ET/JUnit+Format
 
 """
+   format_period_for_xml(time::Millisecond)
+
+Formats a millisecond value into a string in seconds with 3 decimal places.
+
+`@sprintf` is used to ensure that value does not use scientific notification,
+which is not allowed in an XML decimal.
+
+Methods for other `Period`s have not been written as are not currently required.
+"""
+format_period_for_xml(time::Millisecond) = @sprintf("%.3f", time.value/1000)
+
+"""
     set_attribute!(node, attr, val)
+    set_attribute!(node, attr, val::Period)
 
 Add the attritube with name `attr` and value `val` to `node`.
+
+If `val` is of type `Period`, format with `format_period_for_xml`.
 """
 set_attribute!(node, attr, val) = setindex!(node, string(val), attr)
+set_attribute!(node, attr, val::Period) = setindex!(node, format_period_for_xml(val), attr)
 
 """
     testsuites_xml(name, id, ntests, nfails, nerrors, x_children)
@@ -30,7 +48,7 @@ end
 
 Create a testsuite element of a JUnit XML.
 """
-function testsuite_xml(name, id, ntests, nfails, nerrors, x_children)
+function testsuite_xml(name, id, ntests, nfails, nerrors, x_children, time, timestamp)
     x_testsuite = ElementNode("testsuite")
     link!.(Ref(x_testsuite), x_children)
     set_attribute!(x_testsuite, "name", name)
@@ -38,6 +56,8 @@ function testsuite_xml(name, id, ntests, nfails, nerrors, x_children)
     set_attribute!(x_testsuite, "tests", ntests)
     set_attribute!(x_testsuite, "failures", nfails)
     set_attribute!(x_testsuite, "errors", nerrors)
+    set_attribute!(x_testsuite, "time", time)
+    set_attribute!(x_testsuite, "timestamp", timestamp)
     x_testsuite
 end
 
@@ -104,22 +124,22 @@ end
 #####################
 
 """
-    report(ts::AbstractTestSet)
+    report(ts::ReportingTestSet)
 
 Will produce an `XMLDocument` that contains a report about the `TestSet`'s results.
 This report will follow the JUnit XML schema.
 
-In theory this works on many kinds of `TestSet`s, but it is primarily intended for use on
-`ReportingTestSet`s. To report correctly, the `TestSet` must have the following structure:
+To report correctly, the `TestSet` must have the following structure:
 
-    AbstractTestSet
-      └─ AbstractTestSet
-           └─ Result
+    ReportingTestSet
+      └─ ReportingTestSet
+           └─ ReportingResult
+                └─ Result
 
-That is, the results of the top level `TestSet` must all be `AbstractTestSet`s,
-and the results of those `TestSet`s must all be `Results`.
+That is, the results of the top level `TestSet` must all be `ReportingTestSet`s,
+and the results of those `TestSet`s must all be `ReportingResult`s.
 """
-function report(ts::AbstractTestSet)
+function report(ts::ReportingTestSet)
     check_ts_structure(ts)
     total_ntests = 0
     total_nfails = 0
@@ -158,28 +178,31 @@ function check_ts_structure(ts::AbstractTestSet)
 end
 
 """
-    to_xml(ts::AbstractTestSet)
+    to_xml(ts::ReportingTestSet)
 
-Create a testsuite node from an `AbstractTestSet`, by creating nodes for each result
-in `ts.results`. For creating a JUnit XML, all results must be `Result`s, that is
-they cannot be `AbstractTestSet`s, as the XML cannot have one testsuite nested inside
+Create a testsuite node from a `ReportingTestSet`, by creating nodes for each result
+in `ts.results`. For creating a JUnit XML, all results must be `ReportingResult`s, that is
+they cannot be `ReportingTestSet`s, as the XML cannot have one testsuite nested inside
 another.
 """
-function to_xml(ts::AbstractTestSet)
+function to_xml(ts::ReportingTestSet)
     total_ntests = 0
     total_nfails = 0
     total_nerrors = 0
-    x_testcases = map(ts.results) do result
-        x_testcase, ntests, nfails, nerrors = to_xml(result)
+    x_testcases = map(ts.results) do reporting_result
+        x_testcase, ntests, nfails, nerrors = to_xml(reporting_result.result)
         total_ntests += ntests
         total_nfails += nfails
         total_nerrors += nerrors
+        # Set attributes which are common across result types
         set_attribute!(x_testcase, "classname", ts.description)
-        result isa Pass && set_attribute!(x_testcase, "name", x_testcase["name"] * " (Test $total_ntests)")
+        set_attribute!(x_testcase, "time", reporting_result.time_taken)
+        # Set attributes which require variables in this scope
+        reporting_result.result isa Pass && set_attribute!(x_testcase, "name", x_testcase["name"] * " (Test $total_ntests)")
         x_testcase
     end
 
-    x_testsuite = testsuite_xml(ts.description, "_id_", total_ntests, total_nfails, total_nerrors, x_testcases)
+    x_testsuite = testsuite_xml(ts.description, "_id_", total_ntests, total_nfails, total_nerrors, x_testcases, ts.time_taken, ts.start_time)
     ts isa ReportingTestSet && add_testsuite_properties!(x_testsuite, ts)
     x_testsuite, total_ntests, total_nfails, total_nerrors
 end
