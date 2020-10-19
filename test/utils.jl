@@ -1,5 +1,5 @@
-using Pkg, Test, LibGit2
-import Test: finish, record, AbstractTestSet, get_testset_depth, get_testset
+using Dates, Pkg, Test, LibGit2
+import Test: finish, record, AbstractTestSet, get_testset_depth, get_testset, Result
 
 # Strip the filenames from the string, so that the reference strings work on different computers
 strip_filepaths(str) = replace(str, r" at .*\d+$"m => "")
@@ -16,7 +16,13 @@ remove_stacktraces(str) = replace(str, r"(Stacktrace:)[^<]*" => "")
 # remove test output - remove everything before "<?xml version"
 remove_test_output(str) = replace(str, r"^[\S\s]*(?=(<\?xml version))" => "")
 
-const clean_output = replace_Int32s ∘ replace_windows_filepaths ∘ strip_filepaths ∘ remove_stacktraces ∘ remove_test_output
+# Zero timing output - we want "time" there to check its being recorded
+remove_timing_info(str) = replace(str, r"\stime=\\\"[0-9.-]*\\\"" => " time=\"0.0\"")
+
+# Zero timestamp output - we want "timestamp" there to check its being recorded
+remove_timestamp_info(str) = replace(str, r"\stimestamp=\\\"[0-9-T:.]*\\\"" => " timestamp=\"0\"")
+
+const clean_output = strip_filepaths ∘ remove_stacktraces ∘ remove_test_output ∘ remove_timing_info ∘ remove_timestamp_info
 
 """
 `copy_test_package` copied from [`Pkg.jl/test/utils.jl`](https://github.com/JuliaLang/Pkg.jl/blob/v1.4.2/test/utils.jl#L209).
@@ -152,13 +158,27 @@ function test_active_package_expected_fail(pkg::String)
 end
 
 # Test TestSets
-mutable struct NoFlattenReportingTestSet <: AbstractTestSet
+"""
+    TestReportingTestSet
+
+Mimics a `ReportingTestSet` but does not have the properties field or
+`flatten` on `finish`.
+"""
+mutable struct TestReportingTestSet <: AbstractTestSet
     description::AbstractString
     results::Vector
+    start_time::DateTime
 end
-NoFlattenReportingTestSet(desc) = NoFlattenReportingTestSet(desc, [])
-record(ts::NoFlattenReportingTestSet, t) = (push!(ts.results, t); t)
-function finish(ts::NoFlattenReportingTestSet)
+TestReportingTestSet(desc) = TestReportingTestSet(desc, [], Dates.now())
+function record(ts::TestReportingTestSet, t::Result)
+    push!(ts.results, TestReports.ReportingResult(t, Millisecond(0)))
+    t
+end
+function record(ts::TestReportingTestSet, t::AbstractTestSet)
+    push!(ts.results, t)
+    t
+end
+function finish(ts::TestReportingTestSet)
     if get_testset_depth() != 0
         # Attach this test set to the parent test set
         parent_ts = get_testset()

@@ -1,3 +1,22 @@
+using Dates
+import Test: Result
+
+"""
+    ReportingResult{T}
+
+Wraps a `Result` of type `T` so that additional metadata can be saved.
+
+# fields
+- `result::T`: `Result` that is being wrapped.
+- `time_taken::Millisecond`: the time taken (milliseconds) for this test to be run.
+"""
+mutable struct ReportingResult{T} <: Result
+    result::T
+    time_taken::Millisecond
+end
+Base.:(==)(r1::ReportingResult, r2::ReportingResult) = r1.result == r2.result
+Base.hash(f::ReportingResult, h::UInt) = hash(f.result, h)
+
 """
     ReportingTestSet
 
@@ -15,8 +34,13 @@ flatted upon `finish`. See `bin/reporttests.jl` for an example of this use.
 and this is not recommended or supported.
 
 A `ReportingTestSet` has the `description` and `results` fields as per a
-`DefaultTestSet`, and has an additional `properties` field which is used
-to record properties to be inserted into the report.
+`DefaultTestSet`, and has the following additional fields:
+
+- `properties`: a dictionary which is used to record properties to be
+    inserted into the report.
+- `start_time::DateTime`: the start date and time of the testing (local system time).
+- `time_taken::Millisecond`: the time taken in milliseconds to run the `TestSet`.
+- `last_record_time::DateTime`: the time when `record` was last called.
 
 See also: [`flatten_results!`](@ref), [`recordproperty`](@ref), [`report`](@ref)
 """
@@ -24,13 +48,27 @@ mutable struct ReportingTestSet <: AbstractTestSet
     description::String
     results::Vector
     properties::Dict{String, Any}
+    start_time::DateTime
+    time_taken::Millisecond
+    last_record_time::DateTime
 end
 
-ReportingTestSet(desc) = ReportingTestSet(desc, [], Dict())
-
-record(ts::ReportingTestSet, t) = (push!(ts.results, t); t)
+ReportingTestSet(desc) = ReportingTestSet(desc, [], Dict(), now(), Millisecond(0), now())
+function record(ts::ReportingTestSet, t::Result)
+    push!(ts.results, ReportingResult(t, now()-ts.last_record_time))
+    ts.last_record_time = now()
+    t
+end
+function record(ts::ReportingTestSet, t::AbstractTestSet)
+    push!(ts.results, t)
+    ts.last_record_time = now()
+    t
+end
 
 function finish(ts::ReportingTestSet)
+    # Record time time_taken
+    ts.time_taken = now() - ts.start_time
+
     # If we are a nested test set, do not print a full summary
     # now - let the parent test set do the printing
     if get_testset_depth() != 0
@@ -58,6 +96,7 @@ does not throw an exception on a failure. Thus to set the exit code from
 the runner code, we check it using `exit(any_problems(top_level_testset))`.
 """
 any_problems(ts::AbstractTestSet) = any(any_problems.(ts.results))
+any_problems(rs::ReportingResult) = any_problems(rs.result)
 any_problems(::Pass) = false
 any_problems(::Fail) = true
 any_problems(::Broken) = false
@@ -178,6 +217,10 @@ end
 If `ts.results` contains any `Result`s, these are removed from `ts.results` and
 added to a new `ReportingTestSet`, which in turn is added to `ts.results`. This
 leaves `ts.results` only containing `AbstractTestSet`s.
+
+The `time_taken` field of the new `ReportingTestSet` is calculated by summing
+the time taken by the individual results, and the `start_time` field is set to
+the `start_time` field of `ts`.
 """
 function handle_top_level_results!(ts::AbstractTestSet)
     isa_Result = isa.(ts.results, Result)
@@ -186,6 +229,8 @@ function handle_top_level_results!(ts::AbstractTestSet)
         ts.results = AbstractTestSet[]
         ts_nested = ReportingTestSet("Top level tests")
         ts_nested.results = original_results[isa_Result]
+        ts_nested.time_taken = sum(x -> x.time_taken, ts_nested.results)
+        ts_nested.start_time = ts.start_time
         push!(ts.results, ts_nested)
         append!(ts.results, original_results[.!isa_Result])
     end
@@ -214,15 +259,18 @@ end
 
 """
     add_to_ts_default!(ts_default::DefaultTestSet, result::Result)
+    add_to_ts_default!(ts_default::DefaultTestSet, result::ReportingResult)
     add_to_ts_default!(ts_default::DefaultTestSet, ts::AbstractTestSet)
     add_to_ts_default!(ts_default::DefaultTestSet, ts::ReportingTestSet)
 
-Populate `ts_default` with the supplied variable. If the variable is a `Result`
+Populate `ts_default` with the supplied variable. If `result` is a `Result`
 or an `AbstractTestSet` (but not a `ReportingTestSet`) then it is `record`ed.
 If it is a `ReportingTestSet` then a new `DefaultTestSet` with matching description
 is created, populated by recursively calling this function and then added to the
-results of `ts_default`.
+results of `ts_default`. If `result` is a `ReportingResult`, the `Result` contained
+by the `ReportingResult` is added to `ts_default`.
 """
+add_to_ts_default!(ts_default::DefaultTestSet, result::ReportingResult) = add_to_ts_default!(ts_default, result.result)
 add_to_ts_default!(ts_default::DefaultTestSet, result::Result) = record(ts_default, result)
 add_to_ts_default!(ts_default::DefaultTestSet, ts::AbstractTestSet) = record(ts_default, ts)
 function add_to_ts_default!(ts_default::DefaultTestSet, ts::ReportingTestSet)

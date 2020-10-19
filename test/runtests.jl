@@ -184,16 +184,16 @@ end
 
 @testset "record - check_ts_structure" begin
     # No top level testset
-    ts = @testset NoFlattenReportingTestSet begin
+    ts = @testset TestReportingTestSet begin
         @test true
     end
     @test_throws ArgumentError TestReports.check_ts_structure(ts)
 
     # Not flattened
-    ts = @testset NoFlattenReportingTestSet begin
-        @testset NoFlattenReportingTestSet begin
+    ts = @testset TestReportingTestSet begin
+        @testset TestReportingTestSet begin
             @test true
-            @testset NoFlattenReportingTestSet begin
+            @testset TestReportingTestSet begin
                 @test true
             end
         end
@@ -201,8 +201,8 @@ end
     @test_throws ArgumentError TestReports.check_ts_structure(ts)
 
     # Correct structure
-    ts = @testset NoFlattenReportingTestSet begin
-        @testset NoFlattenReportingTestSet begin
+    ts = @testset TestReportingTestSet begin
+        @testset TestReportingTestSet begin
             @test true
         end
     end
