@@ -1,7 +1,7 @@
 # TestReports
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliatesting.github.io/TestReports.jl/stable)
-[![Build Status](https://travis-ci.com/JuliaTesting/TestReports.jl.svg?branch=master)](https://travis-ci.com/JuliaTesting/TestReports.jl)
+[![Build Status](https://github.com/JuliaTesting/TestReports.jl/workflows/CI/badge.svg?branch=master)](https://github.com/JuliaTesting/TestReports.jl/actions?query=workflow%3ACI+branch%3Amaster)
 [![Codecov](https://codecov.io/gh/JuliaTesting/TestReports.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaTesting/TestReports.jl)
 [![ColPrac: Contributor's Guide on Collaborative Practices for Community Packages](https://img.shields.io/badge/ColPrac-Contributor's%20Guide-blueviolet)](https://github.com/SciML/ColPrac)
 
