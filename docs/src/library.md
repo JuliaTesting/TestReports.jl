@@ -24,9 +24,11 @@ Package internals documentation.
 
 ### Report Generation
 
-```@docs
-TestReports.checkinstalled!
-TestReports.gettestfilepath
+```@autodocs
+Modules = [TestReports]
+Pages   = ["runner.jl"]
+Public = false
+Filter = t -> t != TestReports.test
 ```
 
 ### TestSets
