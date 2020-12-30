@@ -4,12 +4,6 @@ import Test: finish, record, AbstractTestSet, get_testset_depth, get_testset, Re
 # Strip the filenames from the string, so that the reference strings work on different computers
 strip_filepaths(str) = replace(str, r" at .*\d+$"m => "")
 
-# Replace direction of windows slashes so reference strings work on windows
-replace_windows_filepaths(str) = replace(str, ".\\" => "./")
-
-# Replace Int32s so reference strings work on x86 platforms
-replace_Int32s(str) = replace(str, "Int32" => "Int64")
-
 # remove stacktraces so reference strings work for different Julia versions
 remove_stacktraces(str) = replace(str, r"(Stacktrace:)[^<]*" => "")
 
