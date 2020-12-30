@@ -41,6 +41,7 @@ A `ReportingTestSet` has the `description` and `results` fields as per a
 - `start_time::DateTime`: the start date and time of the testing (local system time).
 - `time_taken::Millisecond`: the time taken in milliseconds to run the `TestSet`.
 - `last_record_time::DateTime`: the time when `record` was last called.
+- `hostname::String`: the name of host on which the testset was executed.
 
 See also: [`flatten_results!`](@ref), [`recordproperty`](@ref), [`report`](@ref)
 """
@@ -51,9 +52,10 @@ mutable struct ReportingTestSet <: AbstractTestSet
     start_time::DateTime
     time_taken::Millisecond
     last_record_time::DateTime
+    hostname::String
 end
 
-ReportingTestSet(desc) = ReportingTestSet(desc, [], Dict(), now(), Millisecond(0), now())
+ReportingTestSet(desc) = ReportingTestSet(desc, [], Dict(), now(), Millisecond(0), now(), gethostname())
 function record(ts::ReportingTestSet, t::Result)
     push!(ts.results, ReportingResult(t, now()-ts.last_record_time))
     ts.last_record_time = now()

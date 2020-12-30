@@ -28,15 +28,13 @@ set_attribute!(node, attr, val) = setindex!(node, string(val), attr)
 set_attribute!(node, attr, val::Period) = setindex!(node, format_period_for_xml(val), attr)
 
 """
-    testsuites_xml(name, id, ntests, nfails, nerrors, x_children)
+    testsuites_xml(ntests, nfails, nerrors, x_children)
 
 Create the testsuites element of a JUnit XML.
 """
-function testsuites_xml(name, id, ntests, nfails, nerrors, x_children)
+function testsuites_xml(ntests, nfails, nerrors, x_children)
     x_testsuite = ElementNode("testsuites")
     link!.(Ref(x_testsuite), x_children)
-    set_attribute!(x_testsuite, "name", name)
-    set_attribute!(x_testsuite, "id", id)
     set_attribute!(x_testsuite, "tests", ntests)
     set_attribute!(x_testsuite, "failures", nfails)
     set_attribute!(x_testsuite, "errors", nerrors)
@@ -44,20 +42,20 @@ function testsuites_xml(name, id, ntests, nfails, nerrors, x_children)
 end
 
 """
-    testsuite_xml(name, id, ntests, nfails, nerrors, x_children)
+    testsuite_xml(name, ntests, nfails, nerrors, x_children)
 
 Create a testsuite element of a JUnit XML.
 """
-function testsuite_xml(name, id, ntests, nfails, nerrors, x_children, time, timestamp)
+function testsuite_xml(name, ntests, nfails, nerrors, x_children, time, timestamp, hostname)
     x_testsuite = ElementNode("testsuite")
     link!.(Ref(x_testsuite), x_children)
     set_attribute!(x_testsuite, "name", name)
-    set_attribute!(x_testsuite, "id", id)
     set_attribute!(x_testsuite, "tests", ntests)
     set_attribute!(x_testsuite, "failures", nfails)
     set_attribute!(x_testsuite, "errors", nerrors)
     set_attribute!(x_testsuite, "time", time)
     set_attribute!(x_testsuite, "timestamp", timestamp)
+    set_attribute!(x_testsuite, "hostname", hostname)
     x_testsuite
 end
 
@@ -144,18 +142,19 @@ function report(ts::ReportingTestSet)
     total_ntests = 0
     total_nfails = 0
     total_nerrors = 0
+    testsuiteid = 0 # ID increments from 0
     x_testsuites = map(ts.results) do result
         x_testsuite, ntests, nfails, nerrors = to_xml(result)
         total_ntests += ntests
         total_nfails += nfails
         total_nerrors += nerrors;
+        set_attribute!(x_testsuite, "id", testsuiteid)
+        testsuiteid += 1
         x_testsuite
     end
 
     xdoc = XMLDocument()
-    root = setroot!(xdoc, testsuites_xml(ts.description,
-                                         "_id_",
-                                         total_ntests,
+    root = setroot!(xdoc, testsuites_xml(total_ntests,
                                          total_nfails,
                                          total_nerrors,
                                          x_testsuites))
@@ -202,7 +201,7 @@ function to_xml(ts::ReportingTestSet)
         x_testcase
     end
 
-    x_testsuite = testsuite_xml(ts.description, "_id_", total_ntests, total_nfails, total_nerrors, x_testcases, ts.time_taken, ts.start_time)
+    x_testsuite = testsuite_xml(ts.description, total_ntests, total_nfails, total_nerrors, x_testcases, ts.time_taken, ts.start_time, ts.hostname)
     ts isa ReportingTestSet && add_testsuite_properties!(x_testsuite, ts)
     x_testsuite, total_ntests, total_nfails, total_nerrors
 end
