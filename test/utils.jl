@@ -22,7 +22,10 @@ remove_timing_info(str) = replace(str, r"\stime=\\\"[0-9.-]*\\\"" => " time=\"0.
 # Zero timestamp output - we want "timestamp" there to check its being recorded
 remove_timestamp_info(str) = replace(str, r"\stimestamp=\\\"[0-9-T:.]*\\\"" => " timestamp=\"0\"")
 
-const clean_output = strip_filepaths ∘ remove_stacktraces ∘ remove_test_output ∘ remove_timing_info ∘ remove_timestamp_info
+# Default hostname output - we want "hostname" there to check its being recorded
+default_hostname_info(str) = replace(str, r"\shostname=\\\"[\S]*\\\"" => " hostname=\"localhost\"")
+
+const clean_output = strip_filepaths ∘ remove_stacktraces ∘ remove_test_output ∘ remove_timing_info ∘ remove_timestamp_info ∘ default_hostname_info
 
 """
 `copy_test_package` copied from [`Pkg.jl/test/utils.jl`](https://github.com/JuliaLang/Pkg.jl/blob/v1.4.2/test/utils.jl#L209).
