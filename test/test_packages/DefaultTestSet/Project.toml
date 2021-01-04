@@ -1,0 +1,9 @@
+name = "DefaultTestSet"
+uuid = "af5bb637-e1d9-4d89-81d7-b17676f26645"
+version = "0.1.0"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

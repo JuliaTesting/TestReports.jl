@@ -179,3 +179,10 @@ end
     @test res1 != res2
     @test hash(res1) != hash(res2)
 end
+
+@testset "Custom testsets" begin
+    test_active_package_expected_pass("DefaultTestSet") # Tests all abstract methods for accessing testset fields
+    test_active_package_expected_pass("CustomTestSet")
+    test_active_package_expected_fail("NoResultsCustomTestSet")
+    test_active_package_expected_fail("NoDescriptionCustomTestSet")
+end

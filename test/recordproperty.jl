@@ -111,7 +111,7 @@ using TestReports
             end
         end
         # Force flattening as ts doesn't finish fully as it is not the top level testset
-        fail_text = r"Properties of testset Outer can not be added to child testset Inner as it is not a ReportingTestSet."
+        fail_text = r"Properties of testset Outer can not be added to child testset Inner as it does not have a TestReports.properties method defined."
         @test_logs (:warn, fail_text) TestReports.flatten_results!(ts)
 
         # Test for ReportingTestSet setting a property inside of a parent custom testset
@@ -126,6 +126,11 @@ using TestReports
         # Force flattening as ts doesn't finish fully as it is not the top level testset
         TestReports.flatten_results!(ts)
         @test ts.results[1].properties["ID"] == "42"
+
+        # Error if attempting to add property to AbstractTestSet which has properties field with wrong type
+        ts = @testset WrongPropsTestSet begin; recordproperty("id",1); end
+        @test eval(Meta.parse(ts.results[1].value)) isa TestReports.PkgTestError
+        @test occursin("properties method for custom testset must return a dictionary", eval(Meta.parse(ts.results[1].value)).msg)
     end
 
     @testset "Check no interference with default test set" begin

@@ -9,6 +9,7 @@ import Test: Result, Fail, Broken, Pass, Error, scrub_backtrace
 
 export ReportingTestSet, any_problems, report, recordproperty
 
+include("v1_compat.jl")
 include("./testsets.jl")
 include("to_xml.jl")
 include("runner.jl")

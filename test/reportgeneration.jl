@@ -149,12 +149,12 @@ end
     @test report(ts) isa Any  # Would fail before #25
 end
 
-@testset "report - check_ts_structure" begin
+@testset "report - check_ts" begin
     # No top level testset
     ts = @testset TestReportingTestSet begin
         @test true
     end
-    @test_throws ArgumentError TestReports.check_ts_structure(ts)
+    @test_throws ArgumentError TestReports.check_ts(ts)
 
     # Not flattened
     ts = @testset TestReportingTestSet begin
@@ -165,7 +165,23 @@ end
             end
         end
     end
-    @test_throws ArgumentError TestReports.check_ts_structure(ts)
+    @test_throws ArgumentError TestReports.check_ts(ts)
+
+    # No description field
+    ts = @testset TestReportingTestSet begin
+        @testset NoDescriptionTestSet begin
+            @test true
+        end
+    end
+    @test_throws ErrorException TestReports.check_ts(ts)
+
+    # No results field
+    ts = @testset TestReportingTestSet begin
+        @testset NoResultsTestSet begin
+            @test true
+        end
+    end
+    @test_throws ErrorException TestReports.check_ts(ts)
 
     # Correct structure
     ts = @testset TestReportingTestSet begin
@@ -173,5 +189,5 @@ end
             @test true
         end
     end
-    @test TestReports.check_ts_structure(ts) isa Any # Doesn't error
+    @test TestReports.check_ts(ts) isa Any # Doesn't error
 end
