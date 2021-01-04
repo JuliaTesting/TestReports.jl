@@ -122,23 +122,25 @@ end
 #####################
 
 """
-    report(ts::ReportingTestSet)
+    report(ts::AbstractTestSet)
 
 Will produce an `XMLDocument` that contains a report about the `TestSet`'s results.
 This report will follow the JUnit XML schema.
 
 To report correctly, the `TestSet` must have the following structure:
 
-    ReportingTestSet
-      └─ ReportingTestSet
-           └─ ReportingResult
-                └─ Result
+    AbstractTestSet
+      └─ AbstractTestSet
+           └─ AbstractResult
 
-That is, the results of the top level `TestSet` must all be `ReportingTestSet`s,
-and the results of those `TestSet`s must all be `ReportingResult`s.
+That is, the results of the top level `TestSet` must all be `AbstractTestSet`s,
+and the results of those `TestSet`s must all be `Result`s.
+
+Additionally, all of the `AbstractTestSet`s must have both `description` and
+`results` fields.
 """
-function report(ts::ReportingTestSet)
-    check_ts_structure(ts)
+function report(ts::AbstractTestSet)
+    check_ts(ts)
     total_ntests = 0
     total_nfails = 0
     total_nerrors = 0
@@ -163,46 +165,48 @@ function report(ts::ReportingTestSet)
 end
 
 """
-    check_ts_structure(ts::AbstractTestSet)
+    check_ts(ts::AbstractTestSet)
 
-Throws an exception if `ts` does not have the right structure for `report`.
+Throws an exception if `ts` does not have the right structure for `report` or if
+the results of `ts` do not have both `description` or `results` fields.
 
 See also: [`report`](@ref)
 """
-function check_ts_structure(ts::AbstractTestSet)
+function check_ts(ts::AbstractTestSet)
     !all(isa.(ts.results, AbstractTestSet)) && throw(ArgumentError("Results of ts must all be AbstractTestSets. See documentation for `report`."))
-    for result in ts.results
-        !all(isa.(result.results, Result)) && throw(ArgumentError("Results of each AbstractTestSet in ts.results must all be Results. See documentation for `report`."))
+    for results_ts in ts.results
+        !isa(results_ts.description, AbstractString) && throw(ArgumentError("description field of $(typeof(results_ts)) must be an AbstractString."))
+        !all(isa.(results_ts.results, Result)) && throw(ArgumentError("Results of each AbstractTestSet in ts.results must all be Results. See documentation for `report`."))
     end
 end
 
 """
-    to_xml(ts::ReportingTestSet)
+    to_xml(ts::AbstractTestSet)
 
-Create a testsuite node from a `ReportingTestSet`, by creating nodes for each result
-in `ts.results`. For creating a JUnit XML, all results must be `ReportingResult`s, that is
-they cannot be `ReportingTestSet`s, as the XML cannot have one testsuite nested inside
+Create a testsuite node from a `AbstractTestSet`, by creating nodes for each result
+in `ts.results`. For creating a JUnit XML, all results must be `AbstractResult`s, that is
+they cannot be `AbstractTestSet`s, as the XML cannot have one testsuite nested inside
 another.
 """
-function to_xml(ts::ReportingTestSet)
+function to_xml(ts::AbstractTestSet)
     total_ntests = 0
     total_nfails = 0
     total_nerrors = 0
-    x_testcases = map(ts.results) do reporting_result
-        x_testcase, ntests, nfails, nerrors = to_xml(reporting_result.result)
+    x_testcases = map(ts.results) do result
+        x_testcase, ntests, nfails, nerrors = to_xml(result)
         total_ntests += ntests
         total_nfails += nfails
         total_nerrors += nerrors
         # Set attributes which are common across result types
         set_attribute!(x_testcase, "classname", ts.description)
-        set_attribute!(x_testcase, "time", reporting_result.time_taken)
+        set_attribute!(x_testcase, "time", time_taken(result)::Millisecond)
         # Set attributes which require variables in this scope
-        reporting_result.result isa Pass && set_attribute!(x_testcase, "name", x_testcase["name"] * " (Test $total_ntests)")
+        (result isa Pass || result isa ReportingResult{Pass}) && set_attribute!(x_testcase, "name", x_testcase["name"] * " (Test $total_ntests)")
         x_testcase
     end
 
-    x_testsuite = testsuite_xml(ts.description, total_ntests, total_nfails, total_nerrors, x_testcases, ts.time_taken, ts.start_time, ts.hostname)
-    ts isa ReportingTestSet && add_testsuite_properties!(x_testsuite, ts)
+    x_testsuite = testsuite_xml(ts.description, total_ntests, total_nfails, total_nerrors, x_testcases, time_taken(ts)::Millisecond, start_time(ts)::DateTime, hostname(ts))
+    add_testsuite_properties!(x_testsuite, ts)
     x_testsuite, total_ntests, total_nfails, total_nerrors
 end
 
@@ -211,6 +215,7 @@ end
     to_xml(res::Fail)
     to_xml(res::Broken)
     to_xml(res::Error)
+    to_xml(res::ReportingResult)
 
 Create a testcase node from the result and return it along with
 information on number of tests.
@@ -236,6 +241,8 @@ function to_xml(v::Error)
     x_testcase = error_xml(message, type, v.backtrace)
     x_testcase, 0, 0, 1  # Increment number of errors by 1
 end
+
+to_xml(v::ReportingResult) = to_xml(v.result)
 
 """
     get_error_info(v::Error)
@@ -280,15 +287,19 @@ function get_failure_message(v::Fail)
 end
 
 """
-    add_testsuite_properties!(x_testsuite, ts::ReportingTestSet)
+    add_testsuite_properties!(x_testsuite, ts::AbstractTestSet)
 
-Add all key value pairs in the `properties` field of a `ReportingTestSet` to the
-corresponding testsuite xml element.
+Add all key value pairs in the `properties` field of a `AbstractTestSet` to the
+corresponding testsuite xml element. This function assumes that the type of `ts`
+has a `TestReports.properties` method defined.
+
+See also: [`properties`](@ref)
 """
-function add_testsuite_properties!(x_testsuite, ts::ReportingTestSet)
-    if !isempty(keys(ts.properties))
+function add_testsuite_properties!(x_testsuite, ts::AbstractTestSet)
+    properties_dict = properties(ts)
+    if !isnothing(properties_dict) && !isempty(keys(properties_dict))
         x_properties = ElementNode("properties")
-        for (name, value) in ts.properties
+        for (name, value) in properties_dict
             x_property = ElementNode("property")
             set_attribute!(x_property, "name", name)
             set_attribute!(x_property, "value", value)

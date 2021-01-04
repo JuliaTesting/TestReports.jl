@@ -1,6 +1,9 @@
 using Dates
 import Test: Result
 
+####################
+# Type Definitions #
+####################
 """
     ReportingResult{T}
 
@@ -16,6 +19,16 @@ mutable struct ReportingResult{T} <: Result
 end
 Base.:(==)(r1::ReportingResult, r2::ReportingResult) = r1.result == r2.result
 Base.hash(f::ReportingResult, h::UInt) = hash(f.result, h)
+
+"""
+    time_taken(result::ReportingResult)
+    time_taken(result::Result)
+
+For a `ReportingResult`, return the time taken for the test to run.
+For a `Result`, return Dates.Millisecond(0).
+"""
+time_taken(result::ReportingResult) = result.time_taken
+time_taken(result::Result) = Dates.Millisecond(0)
 
 """
     ReportingTestSet
@@ -87,8 +100,76 @@ function finish(ts::ReportingTestSet)
     flatten_results!(ts)
 end
 
-#############
+#################################
+# Accessing and setting methods #
+#################################
+"""
+    properties(ts::ReportingTestSet)
+    properties(ts::AbstractTestSet)
 
+Get the properties dictionary of a `ReportingTestSet`, returns
+nothing for an `AbstractTestSet`. Can be extended for custom
+`TestSet`s, and must return either a `Dict` or `nothing`.
+"""
+properties(ts::ReportingTestSet) = ts.properties
+properties(ts::AbstractTestSet) = nothing
+
+"""
+    start_time(ts::ReportingTestSet)
+    start_time(ts::AbstractTestSet)
+
+Get the start time of a `ReportingTestSet`, returns `Dates.now()`
+for an `AbstractTestSet`. Can be extended for custom `TestSet`s,
+must return a `DateTime`.
+"""
+start_time(ts::ReportingTestSet) = ts.start_time
+start_time(ts::AbstractTestSet) = Dates.now()
+
+"""
+    time_taken(ts::ReportingTestSet)
+    time_taken(ts::AbstractTestSet)
+
+Get the time taken of a `ReportingTestSet`, returns `Dates.Millisecond(0)`
+for an `AbstractTestSet`. Can be extended for custom `TestSet`s, must return
+a `Dates.Millisecond`.
+"""
+time_taken(ts::ReportingTestSet) = ts.time_taken
+time_taken(ts::AbstractTestSet) = Dates.Millisecond(0)
+
+"""
+    hostname(ts::ReportingTestSet)
+    hostname(ts::AbstractTestSet)
+
+Get the hostname of a `ReportingTestSet`, returns `gethostname()`
+for an `AbstractTestSet`. Can be extended for custom `TestSet`s,
+must return a `string`.
+"""
+hostname(ts::ReportingTestSet) = ts.hostname
+hostname(ts::AbstractTestSet) = gethostname()
+
+"""
+    set_time_taken!(ts::ReportingTestSet, time_taken)
+    set_time_taken!(ts::AbstractTestSet, time_taken)
+
+Sets the time taken field of a `ReportingTestSet`. This is used when flattening
+`ReportingTestSet`s for report generation and an be extended for custom `TestSet`s.
+"""
+set_time_taken!(ts::ReportingTestSet, time_taken::Millisecond) = ts.time_taken = time_taken
+set_time_taken!(ts::AbstractTestSet, time_taken::Millisecond) = nothing
+
+"""
+    set_start_time!(ts::ReportingTestSet, start_time)
+    set_start_time!(ts::AbstractTestSet, start_time)
+
+Sets the start time field of a `ReportingTestSet`. This is used when flattening
+`ReportingTestSet`s for report generation and an be extended for custom `TestSet`s.
+"""
+set_start_time!(ts::ReportingTestSet, start_time::DateTime) = ts.start_time = start_time
+set_start_time!(ts::AbstractTestSet, start_time::DateTime) = nothing
+
+############
+# Checking #
+############
 """
     any_problems(ts)
 
@@ -104,9 +185,9 @@ any_problems(::Fail) = true
 any_problems(::Broken) = false
 any_problems(::Error) = true
 
-######################################
-# result flattening
-
+#####################
+# Tesult flattening #
+#####################
 
 """
     flatten_results!(ts::AbstractTestSet)
@@ -179,35 +260,34 @@ _flatten_results!(rs::Result) = [rs]
 
 """
     update_testset_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
-    update_testset_properties!(childts::ReportingTestSet, ts::ReportingTestSet)
 
 Adds properties of `ts` to `childts`. If any properties being added already exist in
 `childts`, a warning is displayed and the value in `ts` is overwritten.
 
-If `ts` and\\or `childts` is not a `ReportingTestSet`, this is handled in the
-`AbstractTestSet` method:
-- If `ts` is not a `ReportingTestSet`, it has no properties to add to `childts`
+If the types of `ts` and\\or `childts` do not a method defined for `TestReports.properties`,
+this is handled as follows:
+- If method not defined for `typeof(ts)`, it has no properties to add to `childts`
     and therefore nothing happens.
-- If `childts` is not a `ReportingTestSet` and `ts` has properties, then a warning
+- If method not defined for `typeof(chidlts)` and `ts` has properties, then a warning
     is shown.
+
+See also: [`properties`](@ref)
 """
 function update_testset_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
-    if !isa(childts, ReportingTestSet) && isa(ts, ReportingTestSet) && !isempty(ts.properties)
-        @warn "Properties of testset $(ts.description) can not be added to child testset $(childts.description) as it is not a ReportingTestSet."
-    end
-    # No need to check if childts is ReportingTestSet and ts isn't, as if this is the case
-    # ts has no properties to apply to childts.
-    return childts
-end
-function update_testset_properties!(childts::ReportingTestSet, ts::ReportingTestSet)
-    parent_keys = keys(ts.properties)
-    child_keys = keys(childts.properties)
-    # Loop through keys so that warnings can be issued for any duplicates
-    for key in parent_keys
-        if key in child_keys
-            @warn "Property $key in testest $(ts.description) overwritten by child testset $(childts.description)"
-        else
-            childts.properties[key] = ts.properties[key]
+    if isnothing(properties(childts)) && !isnothing(properties(ts)) && !isempty(properties(ts))
+        @warn "Properties of testset $(ts.description) can not be added to child testset $(childts.description) as it does not have a TestReports.properties method defined."
+        # No need to check if childts is has properties defined and ts doesn't as if this is the case
+        # ts has no properties to add to that of childts.
+    elseif !isnothing(properties(ts))
+        parent_keys = keys(properties(ts))
+        child_keys = keys(properties(childts))
+        # Loop through keys so that warnings can be issued for any duplicates
+        for key in parent_keys
+            if key in child_keys
+                @warn "Property $key in testest $(ts.description) overwritten by child testset $(childts.description)"
+            else
+                properties(childts)[key] = properties(ts)[key]
+            end
         end
     end
     return childts
@@ -231,8 +311,8 @@ function handle_top_level_results!(ts::AbstractTestSet)
         ts.results = AbstractTestSet[]
         ts_nested = ReportingTestSet("Top level tests")
         ts_nested.results = original_results[isa_Result]
-        ts_nested.time_taken = sum(x -> x.time_taken, ts_nested.results)
-        ts_nested.start_time = ts.start_time
+        set_time_taken!(ts_nested, sum(x -> time_taken(x)::Millisecond, ts_nested.results))
+        set_start_time!(ts_nested, start_time(ts)::DateTime)
         push!(ts.results, ts_nested)
         append!(ts.results, original_results[.!isa_Result])
     end

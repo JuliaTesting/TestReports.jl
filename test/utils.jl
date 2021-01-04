@@ -218,3 +218,59 @@ function finish(ts::TestReportingTestSet)
     end
     return ts
 end
+
+mutable struct NoDescriptionTestSet <: AbstractTestSet
+    results::Vector
+end
+NoDescriptionTestSet(desc) = NoDescriptionTestSet([])
+record(ts::NoDescriptionTestSet, t) = (push!(ts.results, t); t)
+function finish(ts::NoDescriptionTestSet)
+    # If we are a nested test set, do not print a full summary
+    # now - let the parent test set do the printing
+    if get_testset_depth() != 0
+        # Attach this test set to the parent test set
+        parent_ts = get_testset()
+        record(parent_ts, ts)
+        return ts
+    end
+
+    return ts
+end
+
+mutable struct NoResultsTestSet <: AbstractTestSet
+    description::String
+end
+record(ts::NoResultsTestSet, t) = t
+function finish(ts::NoResultsTestSet)
+    # If we are a nested test set, do not print a full summary
+    # now - let the parent test set do the printing
+    if get_testset_depth() != 0
+        # Attach this test set to the parent test set
+        parent_ts = get_testset()
+        record(parent_ts, ts)
+        return ts
+    end
+
+    return ts
+end
+
+mutable struct WrongPropsTestSet <: AbstractTestSet
+    description::String
+    results::Vector
+    properties::String
+end
+WrongPropsTestSet(desc) = WrongPropsTestSet(desc, [], "")
+record(ts::WrongPropsTestSet, t) = (push!(ts.results, t); t)
+function finish(ts::WrongPropsTestSet)
+    # If we are a nested test set, do not print a full summary
+    # now - let the parent test set do the printing
+    if get_testset_depth() != 0
+        # Attach this test set to the parent test set
+        parent_ts = get_testset()
+        record(parent_ts, ts)
+        return ts
+    end
+
+    return ts
+end
+TestReports.properties(ts::WrongPropsTestSet) = ts.properties

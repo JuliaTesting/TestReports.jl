@@ -23,7 +23,7 @@ julia> TestReports.test("MyPackage")
     It is intended that it `runtests.jl` will not need to be changed to generate
     a report (unless [properties are being added](#Adding-Properties)).
     
-    This does assume, however, that `DefaultTestSet`s are being used. In the case of
+    This does assume, however, that no custom `TestSet`s are being used. In the case of
     custom `TestSet`s, please see the [discussion](#Custom-TestSet-Types) below.
 
 The typical use in a CI process would be:
@@ -210,9 +210,20 @@ However at a minimum, for a custom `TestSet` type to work with `TestReports` it 
 - Push itself onto its parent when finishing, if it is not at the top level
 - Have `description` and `results` fields as per a `DefaultTestSet`
 
-Testsuite properties cannot be added to a `TestSet` that is not a `ReportingTestSet`,
-(i.e. any `TestSet` that has the type specified to be something other than a
-`ReportingTestSet`, or that inherits a specified type from a parent). If no types
-are specified, `TestReports.test` will ensure that all child `TestSet`s inherit
-the `ReportingTestSet` type.
+The following information in a JUnit XML relies on the functionality of `ReportingTestSet`s
+but can be added to your own custom `TestSet` as described in the table.
+
+|Information|Description|
+|---|---|
+| testcase time | This is extracted from a `ReportingResult` by the `TestReports.time_taken` function. For standard `Result`s, rather than `ReportingResult`s, this function returns `Dates.Millisecond(0)`. This function can be extended for other custom `Result` types.|
+| testsuite time| This is extracted from a `TestSet` by the `TestReports.time_taken` function, which can be extended for custom `TestSet`s. If not extended, the `AbstractTestSet` method will be used and the value defaults to `Dates.Millisecond(0)`. |
+| testsuite timestamp| This is extracted from a `TestSet` by the `TestReports.start_time` function, which can be extended for custom `TestSet`s. If not extended, the `AbstractTestSet` method will be used and the value defaults to `Dates.now()`. |
+| testsuite hostname| This is extracted from a `TestSet` by the `TestReports.hostname` function, which can be extended for custom `TestSet`s. If not extended, the `AbstractTestSet` method will be used and the value defaults to `gethostname()`. |
+| testsuite properties| This is extracted from a `TestSet` by the `TestReports.properties` function, which can be extended for custom `TestSet`s. If not extended, the `AbstractTestSet` method will be used and the value defaults to `nothing`. |
+
+For further details on extending these fuctions, see the docstrings in [TestSets](@ref).
+
+The [source code of `TestReports`](https://github.com/JuliaTesting/TestReports.jl/blob/master/src/testsets.jl) can be used as a starting point for including this behaviour in your custom `TestSet`s.
+
+If no `TestSet` types are specified (as per the standard `Test` approach), `TestSet` functionality will ensure that all child `TestSet`s inherit the `ReportingTestSet` type.
 
