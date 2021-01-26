@@ -39,6 +39,7 @@ function copy_test_package(tmpdir::String, name::String; use_pkg=true)
     for f in ("Manifest.toml", "Project.toml")
         fpath = joinpath(tmpdir, name, f)
         if isfile(fpath)
+            chmod(fpath, 0o777) # Ensure writable
             write(fpath, replace(read(fpath, String), known_pkg_uuid => pkg_uuid))
         end
     end
@@ -52,7 +53,8 @@ https://github.com/JuliaLang/Pkg.jl/blob/master/test/utils.jl
 Function has been modified to be compatible with both v1.0.5 and v1.4.0, and
 the DEPOT_PATH behaviour has been changed so that DEPOT_PATH is unchanged.
 """
-function temp_pkg_dir(fn::Function;rm=true)
+function temp_pkg_dir(fn::Function;rm=true, add_testresports_env=true)
+    testreportsenv = TestReports.get_testreports_environment()
     old_load_path = copy(LOAD_PATH)
     # old_depot_path = copy(DEPOT_PATH)
     old_home_project = Base.HOME_PROJECT[]
@@ -90,6 +92,7 @@ function temp_pkg_dir(fn::Function;rm=true)
             # depot_dir = mktempdir()
             try
                 push!(LOAD_PATH, "@", "@v#.#", "@stdlib")
+                add_testresports_env && push!(LOAD_PATH, testreportsenv)
                 # push!(DEPOT_PATH, depot_dir)
                 fn(env_dir)
             finally
@@ -133,8 +136,24 @@ runs `TestReports.test(pkg)`.
 """
 function test_active_package_expected_pass(pkg::String)
     temp_pkg_dir() do tmp
-        copy_test_package(tmp, pkg)
-        Pkg.activate(joinpath(tmp, pkg))
+        path = copy_test_package(tmp, pkg)
+        Pkg.activate(path)
+        TestReports.test(pkg)
+        test_successful_testrun(() -> TestReports.test(pkg), pkg)
+    end
+end
+
+"""
+    test_package_expected_pass(pkg::String)
+
+Helper function which develops `pkg` in an isolated temporary directory and
+runs `TestReports.test(pkg)`.
+"""
+function test_package_expected_pass(pkg::String)
+    temp_pkg_dir() do tmp
+        path = copy_test_package(tmp, pkg)
+        Pkg.develop(Pkg.PackageSpec(path=path))
+        TestReports.test(pkg)
         test_successful_testrun(() -> TestReports.test(pkg), pkg)
     end
 end
@@ -148,8 +167,23 @@ runs `TestReports.test(pkg)`, expecting the report writing to fail with a
 """
 function test_active_package_expected_fail(pkg::String)
     temp_pkg_dir() do tmp
-        copy_test_package(tmp, pkg)
-        Pkg.activate(joinpath(tmp, pkg))
+        path = copy_test_package(tmp, pkg)
+        Pkg.activate(path)
+        @test_throws TestReports.PkgTestError TestReports.test(pkg)
+    end
+end
+
+"""
+    test_package_expected_fail(pkg::String)
+
+Helper function which develops `pkg` in an isolated temporary directory and
+runs `TestReports.test(pkg)`, expecting the report writing to fail with a
+`PkgTestError`.
+"""
+function test_package_expected_fail(pkg::String)
+    temp_pkg_dir() do tmp
+        path = copy_test_package(tmp, pkg)
+        Pkg.develop(Pkg.PackageSpec(path=path))
         @test_throws TestReports.PkgTestError TestReports.test(pkg)
     end
 end

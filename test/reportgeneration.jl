@@ -15,7 +15,7 @@ end
 end
 
 @testset "Runner tests" begin
-    @testset "installed packages by name" begin
+    @testset "Installed packages by name in primary environment" begin
         # Pkg.add
         Pkg.add(TEST_PKG.name)
         test_successful_testrun(() -> TestReports.test(TEST_PKG.name), TEST_PKG.name)
@@ -29,7 +29,7 @@ end
         Pkg.rm("PassingTests")
     end
 
-    @testset "activated projects" begin
+    @testset "Activated projects - TestReports in stacked environment" begin
         @testset "by name" begin
             # The test run should not fail when passed the name of the project
             # that is activated and fail when its deactivated
@@ -56,11 +56,12 @@ end
     end
 
     @testset "Non-package error in runner" begin
-        pkgname = "PassingTests"
-        Pkg.develop(Pkg.PackageSpec(path=joinpath(@__DIR__, "test_packages", pkgname)))
-        # Pass non-existing argument to julia to make run command fail
-        @test_throws TestReports.PkgTestError TestReports.test(pkgname, julia_args=`--doesnt-exist`)
-        Pkg.rm("PassingTests")
+        temp_pkg_dir() do tmp
+            pkgname = "PassingTests"
+            Pkg.develop(Pkg.PackageSpec(path=joinpath(@__DIR__, "test_packages", pkgname)))
+            # Pass non-existing argument to julia to make run command fail
+            @test_throws TestReports.PkgTestError TestReports.test(pkgname, julia_args=`--doesnt-exist`)
+        end
     end
 end
 
