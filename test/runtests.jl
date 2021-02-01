@@ -11,6 +11,3 @@ include("utils.jl")
     @testset "report generation" begin include("reportgeneration.jl") end
     @testset "runner internals" begin include("runnerinternals.jl") end
 end
-
-# clean up locally cached registry
-rm(joinpath(@__DIR__, "registries"); force=true, recursive=true)

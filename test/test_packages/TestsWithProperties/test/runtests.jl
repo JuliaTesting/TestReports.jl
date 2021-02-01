@@ -2,27 +2,23 @@ using Test
 using TestReports
 using Base.Threads
 
-@testset "Math" begin
+@testset "Outer" begin
     recordproperty("File", "runtests.jl")
 
-    @testset "Multiplication" begin
+    @testset "Middle 1" begin
         recordproperty("ID", 1)
-        @test 1*3 == 3
-        @test 1*4 == 4
+        @test true
     end
 
-    @test 4 % 2 == 0
-    @test 16 == 16
+    @test true
 
-    @testset "addition" begin
+    @testset "Middle 2" begin
         recordproperty("ID", 2)
-        @test 1+1 == 2
-        @test 1+4 == 5
+        @test true
 
-        @testset "negative addition" begin
+        @testset "Inner" begin
             recordproperty("AdditionalNest", true)
-            @test 1 + -1 == 0
-            @test 10 + -5 == 5
+            @test true
         end
     end
 end
@@ -33,5 +29,5 @@ end
     recordproperty("Float", 0.5) 
     recordproperty("List", ["1"]) 
     recordproperty("Symbol", :asymbol) 
-    @test occursin("i", "in")
+    @test true
 end
