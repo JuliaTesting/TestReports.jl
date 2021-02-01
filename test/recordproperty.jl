@@ -66,8 +66,7 @@ using TestReports
         # Test full packaage
         pkg = "TestsWithProperties"
         temp_pkg_dir() do tmp
-            copy_test_package(tmp, pkg)
-            Pkg.activate(joinpath(tmp, pkg))
+            Pkg.develop(Pkg.PackageSpec(path=test_package_path(pkg)))
             TestReports.test(pkg)
         end
         logfile = joinpath(@__DIR__, "testlog.xml")

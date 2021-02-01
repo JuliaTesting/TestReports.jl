@@ -181,8 +181,19 @@ end
 end
 
 @testset "Custom testsets" begin
-    test_active_package_expected_pass("DefaultTestSet") # Tests all abstract methods for accessing testset fields
-    test_active_package_expected_pass("CustomTestSet")
-    test_active_package_expected_fail("NoResultsCustomTestSet")
-    test_active_package_expected_fail("NoDescriptionCustomTestSet")
+    # Abstract methods
+    ts = @testset TestReportingTestSet "" begin
+        @test true
+    end
+    @test TestReports.time_taken(ts) == Dates.Millisecond(0)
+    @test TestReports.start_time(ts) isa Dates.DateTime
+    @test TestReports.hostname(ts) == gethostname()
+    @test TestReports.set_time_taken!(ts, Dates.Millisecond(1)) === nothing
+    @test TestReports.set_start_time!(ts, Dates.now()) === nothing
+    @test TestReports.time_taken(ts.results[1]) == Dates.Millisecond(0)
+
+    # Test Packages
+    test_package_expected_pass("CustomTestSet") # Tests all abstract methods for accessing testset fields
+    test_package_expected_fail("NoResultsCustomTestSet")
+    test_package_expected_fail("NoDescriptionCustomTestSet")
 end

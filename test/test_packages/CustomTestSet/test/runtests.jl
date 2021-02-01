@@ -43,28 +43,3 @@ end
     end
     @test true
 end
-
-# Own time_taken field
-mutable struct TimeTakenTestSet <: AbstractTestSet
-    description::String
-    results::Vector
-    time_taken::Int64
-end
-TimeTakenTestSet(desc) = TimeTakenTestSet(desc, [], -1)
-record(ts::TimeTakenTestSet, t) = (push!(ts.results, t); t)
-function finish(ts::TimeTakenTestSet)
-    # If we are a nested test set, do not print a full summary
-    # now - let the parent test set do the printing
-    if get_testset_depth() != 0
-        # Attach this test set to the parent test set
-        parent_ts = get_testset()
-        record(parent_ts, ts)
-        return ts
-    end
-
-    return ts
-end
-
-@testset TimeTakenTestSet "ts6" begin
-    @test true
-end

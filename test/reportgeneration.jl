@@ -16,24 +16,25 @@ end
 
 @testset "Runner tests" begin
     @testset "Installed packages by name in primary environment" begin
-        # Pkg.add
+        # For speed avoid updating registry, we have a fresh one anyway
+        Pkg.UPDATED_REGISTRY_THIS_SESSION[] = true
+        # Pkg.add test
         Pkg.add(TEST_PKG.name)
         test_successful_testrun(() -> TestReports.test(TEST_PKG.name), TEST_PKG.name)
         Pkg.rm(TEST_PKG.name)
         @test_throws TestReports.PkgTestError TestReports.test(TEST_PKG.name)
-
-        # Pkg.develop
-        pkgname = "PassingTests"
-        Pkg.develop(Pkg.PackageSpec(path=joinpath(@__DIR__, "test_packages", pkgname)))
-        test_successful_testrun(() -> TestReports.test(pkgname), pkgname)
-        Pkg.rm("PassingTests")
     end
 
     @testset "Activated projects - TestReports in stacked environment" begin
         @testset "by name" begin
             # The test run should not fail when passed the name of the project
             # that is activated and fail when its deactivated
-            test_active_package_expected_pass("PassingTests")
+            temp_pkg_dir() do tmp
+                pkg = "PassingTests"
+                path = copy_test_package(tmp, pkg)
+                Pkg.activate(path)
+                test_successful_testrun(() -> TestReports.test(pkg), pkg)
+            end
             @test_throws TestReports.PkgTestError TestReports.test(TEST_PKG.name)
         end
 
@@ -57,28 +58,26 @@ end
 
     @testset "Non-package error in runner" begin
         temp_pkg_dir() do tmp
-            pkgname = "PassingTests"
-            Pkg.develop(Pkg.PackageSpec(path=joinpath(@__DIR__, "test_packages", pkgname)))
+            pkg = "PassingTests"
+            Pkg.develop(Pkg.PackageSpec(path=test_package_path(pkg)))
             # Pass non-existing argument to julia to make run command fail
-            @test_throws TestReports.PkgTestError TestReports.test(pkgname, julia_args=`--doesnt-exist`)
+            @test_throws TestReports.PkgTestError TestReports.test(pkg, julia_args=`--doesnt-exist`)
         end
     end
 end
 
 @testset "Test packages" begin
     # Errors
-    test_active_package_expected_fail("FailedTest")
-    test_active_package_expected_fail("ErroredTest")
-    test_active_package_expected_fail("NoTestFile")
+    test_package_expected_fail("FailedTest")
+    test_package_expected_fail("ErroredTest")
+    test_package_expected_fail("NoTestFile")
 
     # Various test dependencies
     test_pkgs = [
         "TestsWithDeps",
         "TestsWithTestDeps"
     ]
-    for pkg in test_pkgs
-        test_active_package_expected_pass(pkg)
-    end
+    foreach(test_package_expected_pass, test_pkgs)
 
     # Test file project file tests, 1.2 and above
     @static if VERSION >= v"1.2.0"
@@ -86,16 +85,13 @@ end
             "TestsWithProjectFile",
             "TestsWithProjectFileWithTestDeps"
         ]
-        for pkg in test_pkgs
-            test_active_package_expected_pass(pkg)
-        end
+        foreach(test_package_expected_pass, test_pkgs)
     end
 
     # Test arguments
     temp_pkg_dir() do tmp
         pkg = "TestArguments"
-        copy_test_package(tmp, pkg)
-        Pkg.activate(joinpath(tmp, pkg))
+        Pkg.develop(Pkg.PackageSpec(path=test_package_path(pkg)))
         test_successful_testrun(() -> TestReports.test(pkg; test_args=`a b`, julia_args=`--quiet --check-bounds=no`), pkg)
         test_successful_testrun(() -> TestReports.test(pkg; test_args=["a", "b"], julia_args=`--quiet --check-bounds=no`), pkg)
     end
@@ -107,18 +103,14 @@ end
     # Single package tests
     TestReports.test(TEST_PKG.name)
     @test isfile(joinpath(pwd(),"testlog.xml"))
-    TestReports.test(TEST_PKG.name; logfilename="changedname.xml")
-    @test isfile(joinpath(pwd(),"changedname.xml"))
     new_path = joinpath(pwd(), "NonExistentDir")
-    TestReports.test(TEST_PKG.name; logfilename="testlog.xml", logfilepath=new_path)
-    @test isfile(joinpath(new_path,"testlog.xml"))
+    TestReports.test(TEST_PKG.name; logfilename="changedname.xml", logfilepath=new_path)
+    @test isfile(joinpath(new_path,"changedname.xml"))
     Pkg.rm(TEST_PKG.name)
 
     # Multiple package test
     temp_pkg_dir() do tmp
-        copy_test_package(tmp, "PassingTests")
-        Pkg.activate(tmp)
-        Pkg.develop(Pkg.PackageSpec(path=joinpath(tmp, "PassingTests")))
+        Pkg.develop(Pkg.PackageSpec(path=test_package_path("PassingTests")))
         Pkg.add(TEST_PKG.name)
         TestReports.test([TEST_PKG.name, "PassingTests"])
         @test isfile(joinpath(pwd(),"Example_testlog.xml"))
@@ -126,8 +118,6 @@ end
         TestReports.test([TEST_PKG.name, "PassingTests"]; logfilename=["testlog1.xml", "testlog2.xml"])
         @test isfile(joinpath(pwd(),"testlog1.xml"))
         @test isfile(joinpath(pwd(),"testlog2.xml"))
-        Pkg.rm("PassingTests")
-        Pkg.rm(TEST_PKG.name)
     end
 
     # Errors
@@ -136,7 +126,7 @@ end
     @test_throws TypeError TestReports.test(TEST_PKG.name; logfilename=["ThisShouldJustBeAString.xml"])
 
     # Tidy up
-    rm.(joinpath.(Ref(pwd()), ["testlog.xml", "changedname.xml", "Example_testlog.xml", "PassingTests_testlog.xml", "testlog1.xml", "testlog2.xml"]))
+    rm.(joinpath.(Ref(pwd()), ["testlog.xml", "Example_testlog.xml", "PassingTests_testlog.xml", "testlog1.xml", "testlog2.xml"]))
     rm(new_path, recursive=true)
 end
 

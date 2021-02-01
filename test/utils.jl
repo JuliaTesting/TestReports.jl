@@ -21,13 +21,15 @@ default_hostname_info(str) = replace(str, r"\shostname=\\\"[\S]*\\\"" => " hostn
 
 const clean_output = strip_filepaths ∘ remove_stacktraces ∘ remove_test_output ∘ remove_timing_info ∘ remove_timestamp_info ∘ default_hostname_info
 
+test_package_path(pkg) = joinpath(@__DIR__, "test_packages", pkg)
+
 """
 `copy_test_package` copied from [`Pkg.jl/test/utils.jl`](https://github.com/JuliaLang/Pkg.jl/blob/v1.4.2/test/utils.jl#L209).
 https://github.com/JuliaLang/Pkg.jl/blob/master/test/utils.jl
 """
 function copy_test_package(tmpdir::String, name::String; use_pkg=true)
     target = joinpath(tmpdir, name)
-    cp(joinpath(@__DIR__, "test_packages", name), target)
+    cp(test_package_path(name), target)
     use_pkg || return target
 
     # The known Pkg UUID, and whatever UUID we're currently using for testing
@@ -50,55 +52,31 @@ end
 `temp_pkg_dir` copied from Pkg.jl as cannot be imported during tests.
 https://github.com/JuliaLang/Pkg.jl/blob/master/test/utils.jl
 
-Function has been modified to be compatible with both v1.0.5 and v1.4.0, and
-the DEPOT_PATH behaviour has been changed so that DEPOT_PATH is unchanged.
+Function has been modified to be compatible with both v1.0.5 and v1.4.0,
+the DEPOT_PATH behaviour has been changed so that DEPOT_PATH is unchanged,
+and the current registry is used rather than a new one downloaded.
 """
 function temp_pkg_dir(fn::Function;rm=true, add_testresports_env=true)
     testreportsenv = TestReports.get_testreports_environment()
     old_load_path = copy(LOAD_PATH)
-    # old_depot_path = copy(DEPOT_PATH)
     old_home_project = Base.HOME_PROJECT[]
     old_active_project = Base.ACTIVE_PROJECT[]
-    VERSION >= v"1.4.0" ?
-        old_general_registry_url = Pkg.Types.DEFAULT_REGISTRIES[1].url :
-        old_general_registry_url = Pkg.Types.DEFAULT_REGISTRIES["General"]
     try
-        # Clone the registry only once
-        generaldir = joinpath(@__DIR__, "registries", "General")
-        if !isdir(generaldir)
-            mkpath(generaldir)
-            if VERSION >= v"1.4.0"
-                LibGit2.with(Pkg.GitTools.clone(Pkg.Types.Context(),
-                                                "https://github.com/JuliaRegistries/General.git",
-                                                generaldir)) do repo
-                end
-            else
-                LibGit2.with(Pkg.GitTools.clone("https://github.com/JuliaRegistries/General.git",
-                                                generaldir)) do repo
-                end
-            end
-        end
         empty!(LOAD_PATH)
-        # empty!(DEPOT_PATH)
         Base.HOME_PROJECT[] = nothing
         Base.ACTIVE_PROJECT[] = nothing
-        VERSION >= v"1.4.0" ?
-            Pkg.Types.DEFAULT_REGISTRIES[1].url = generaldir :
-            Pkg.Types.DEFAULT_REGISTRIES["General"] = generaldir
         withenv("JULIA_PROJECT" => nothing,
                 "JULIA_LOAD_PATH" => nothing,
                 "JULIA_PKG_DEVDIR" => nothing) do
             env_dir = mktempdir()
-            # depot_dir = mktempdir()
+            Base.ACTIVE_PROJECT[] = env_dir
             try
-                push!(LOAD_PATH, "@", "@v#.#", "@stdlib")
+                push!(LOAD_PATH, env_dir, "@stdlib")
                 add_testresports_env && push!(LOAD_PATH, testreportsenv)
-                # push!(DEPOT_PATH, depot_dir)
                 fn(env_dir)
             finally
                 try
                     rm && Base.rm(env_dir; force=true, recursive=true)
-                    # rm && Base.rm(depot_dir; force=true, recursive=true)
                 catch err
                     # Avoid raising an exception here as it will mask the original exception
                     println(Base.stderr, "Exception in finally: $(sprint(showerror, err))")
@@ -107,14 +85,9 @@ function temp_pkg_dir(fn::Function;rm=true, add_testresports_env=true)
         end
     finally
         empty!(LOAD_PATH)
-        # empty!(DEPOT_PATH)
         append!(LOAD_PATH, old_load_path)
-        # append!(DEPOT_PATH, old_depot_path)
         Base.HOME_PROJECT[] = old_home_project
         Base.ACTIVE_PROJECT[] = old_active_project
-        VERSION >= v"1.4.0" ?
-            Pkg.Types.DEFAULT_REGISTRIES[1].url = old_general_registry_url :
-            Pkg.Types.DEFAULT_REGISTRIES["General"] = old_general_registry_url
     end
 end
 
@@ -127,22 +100,6 @@ function test_successful_testrun(testrun::Function, project::AbstractString)
     @test_logs (:info, "Testing $(project)") (:info, successful_pass_matcher) match_mode=:any testrun()
 end
 
-
-"""
-    test_active_package_expected_pass(pkg::String)
-
-Helper function which activates `pkg` in an isolated temporary directory and
-runs `TestReports.test(pkg)`.
-"""
-function test_active_package_expected_pass(pkg::String)
-    temp_pkg_dir() do tmp
-        path = copy_test_package(tmp, pkg)
-        Pkg.activate(path)
-        TestReports.test(pkg)
-        test_successful_testrun(() -> TestReports.test(pkg), pkg)
-    end
-end
-
 """
     test_package_expected_pass(pkg::String)
 
@@ -151,25 +108,8 @@ runs `TestReports.test(pkg)`.
 """
 function test_package_expected_pass(pkg::String)
     temp_pkg_dir() do tmp
-        path = copy_test_package(tmp, pkg)
-        Pkg.develop(Pkg.PackageSpec(path=path))
-        TestReports.test(pkg)
+        Pkg.develop(Pkg.PackageSpec(path=test_package_path(pkg)))
         test_successful_testrun(() -> TestReports.test(pkg), pkg)
-    end
-end
-
-"""
-    test_active_package_expected_fail(pkg::String)
-
-Helper function which activates `pkg` in an isolated temporary directory and
-runs `TestReports.test(pkg)`, expecting the report writing to fail with a
-`PkgTestError`.
-"""
-function test_active_package_expected_fail(pkg::String)
-    temp_pkg_dir() do tmp
-        path = copy_test_package(tmp, pkg)
-        Pkg.activate(path)
-        @test_throws TestReports.PkgTestError TestReports.test(pkg)
     end
 end
 
@@ -182,8 +122,7 @@ runs `TestReports.test(pkg)`, expecting the report writing to fail with a
 """
 function test_package_expected_fail(pkg::String)
     temp_pkg_dir() do tmp
-        path = copy_test_package(tmp, pkg)
-        Pkg.develop(Pkg.PackageSpec(path=path))
+        Pkg.develop(Pkg.PackageSpec(path=test_package_path(pkg)))
         @test_throws TestReports.PkgTestError TestReports.test(pkg)
     end
 end
