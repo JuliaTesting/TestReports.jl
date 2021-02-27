@@ -1,5 +1,7 @@
 using Test
-import Test: AbstractTestSet, record, finish, get_testset_depth, get_testset
+using Test: AbstractTestSet, get_testset_depth, get_testset
+
+import Test: finish, record
 
 mutable struct MyTestSet <: AbstractTestSet
     description::String

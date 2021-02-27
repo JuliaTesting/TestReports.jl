@@ -1,5 +1,3 @@
-import Test: get_testset
-
 """
     recordproperty(name::String, value)
 

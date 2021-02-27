@@ -1,5 +1,5 @@
-using TestReports
 using Test
+using TestReports
 
 # Include utils
 include("utils.jl")
