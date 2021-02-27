@@ -1,6 +1,6 @@
 using EzXML
 using Test
-import Test: DefaultTestSet, AbstractTestSet, finish, record, get_testset_depth, get_testset, Error
+using Test: DefaultTestSet, AbstractTestSet, Error, get_testset, get_testset_depth 
 using ReferenceTests
 using TestReports
 

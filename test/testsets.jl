@@ -1,6 +1,6 @@
 using Dates
 using Test
-import Test: AbstractTestSet, Result, Pass, Fail, Broken, Error
+using Test: AbstractTestSet, Result, Pass, Fail, Broken, Error
 using TestReports
 
 @testset "handle_top_level_results!" begin

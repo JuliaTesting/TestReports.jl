@@ -1,5 +1,3 @@
-using Printf
-
 # Format is defined by
 # https://www.ibm.com/support/knowledgecenter/en/SSQ2R2_14.2.0/com.ibm.rsar.analysis.codereview.cobol.doc/topics/cac_useresults_junit.html
 # http://help.catchsoftware.com/display/ET/JUnit+Format

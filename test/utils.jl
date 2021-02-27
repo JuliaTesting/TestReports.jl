@@ -1,5 +1,9 @@
-using Dates, Pkg, Test, LibGit2
-import Test: finish, record, AbstractTestSet, get_testset_depth, get_testset, Result
+using Dates
+using Pkg
+using Test
+using Test: AbstractTestSet, Result, get_testset, get_testset_depth 
+
+import Test: finish, record
 
 # Strip the filenames from the string, so that the reference strings work on different computers
 strip_filepaths(str) = replace(str, r" at .*\d+$"m => "")
