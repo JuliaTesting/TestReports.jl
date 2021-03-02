@@ -206,9 +206,12 @@ Each test is recorded in a separate testsuite with the name showing the original
 `TestReports.jl` has not been tested significantly with custom `TestSet` types, please
 raise an issue if you find any problems/have a request.
 
-However at a minimum, for a custom `TestSet` type to work with `TestReports` it must:
-- Push itself onto its parent when finishing, if it is not at the top level
-- Have `description` and `results` fields as per a `DefaultTestSet`
+However at a minimum, for a custom `TestSet` type to work with `TestReports`, it must:
+- Push itself onto its parent when finishing, if it is not at the top level.
+- Have a `description` fields as per a `DefaultTestSet` or have a method defined for
+    `TestReports.get_description` that returns the description from the `TestSet`.
+- Have a `results` fields as per a `DefaultTestSet` or have a method defined for
+    `TestReports.get_results` that returns the results from the `TestSet`.
 
 The following information in a JUnit XML relies on the functionality of `ReportingTestSet`s
 but can be added to your own custom `TestSet` as described in the table.

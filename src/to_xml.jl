@@ -143,7 +143,7 @@ function report(ts::AbstractTestSet)
     total_nfails = 0
     total_nerrors = 0
     testsuiteid = 0 # ID increments from 0
-    x_testsuites = map(ts.results) do result
+    x_testsuites = map(get_results(ts)) do result
         x_testsuite, ntests, nfails, nerrors = to_xml(result)
         total_ntests += ntests
         total_nfails += nfails
@@ -171,10 +171,10 @@ the results of `ts` do not have both `description` or `results` fields.
 See also: [`report`](@ref)
 """
 function check_ts(ts::AbstractTestSet)
-    !all(isa.(ts.results, AbstractTestSet)) && throw(ArgumentError("Results of ts must all be AbstractTestSets. See documentation for `report`."))
-    for results_ts in ts.results
-        !isa(results_ts.description, AbstractString) && throw(ArgumentError("description field of $(typeof(results_ts)) must be an AbstractString."))
-        !all(isa.(results_ts.results, Result)) && throw(ArgumentError("Results of each AbstractTestSet in ts.results must all be Results. See documentation for `report`."))
+    !all(isa.(get_results(ts), AbstractTestSet)) && throw(ArgumentError("Results of ts must all be AbstractTestSets. See documentation for `report`."))
+    for results_ts in get_results(ts)
+        !isa(get_description(results_ts), AbstractString) && throw(ArgumentError("description field of $(typeof(results_ts)) must be an AbstractString."))
+        !all(isa.(get_results(results_ts), Result)) && throw(ArgumentError("Results of each AbstractTestSet in get_results(ts) must all be Results. See documentation for `report`."))
     end
 end
 
@@ -182,7 +182,7 @@ end
     to_xml(ts::AbstractTestSet)
 
 Create a testsuite node from a `AbstractTestSet`, by creating nodes for each result
-in `ts.results`. For creating a JUnit XML, all results must be `AbstractResult`s, that is
+in `get_results(ts)`. For creating a JUnit XML, all results must be `AbstractResult`s, that is
 they cannot be `AbstractTestSet`s, as the XML cannot have one testsuite nested inside
 another.
 """
@@ -190,20 +190,20 @@ function to_xml(ts::AbstractTestSet)
     total_ntests = 0
     total_nfails = 0
     total_nerrors = 0
-    x_testcases = map(ts.results) do result
+    x_testcases = map(get_results(ts)) do result
         x_testcase, ntests, nfails, nerrors = to_xml(result)
         total_ntests += ntests
         total_nfails += nfails
         total_nerrors += nerrors
         # Set attributes which are common across result types
-        set_attribute!(x_testcase, "classname", ts.description)
+        set_attribute!(x_testcase, "classname", get_description(ts))
         set_attribute!(x_testcase, "time", time_taken(result)::Millisecond)
         # Set attributes which require variables in this scope
         (result isa Pass || result isa ReportingResult{Pass}) && set_attribute!(x_testcase, "name", x_testcase["name"] * " (Test $total_ntests)")
         x_testcase
     end
 
-    x_testsuite = testsuite_xml(ts.description, total_ntests, total_nfails, total_nerrors, x_testcases, time_taken(ts)::Millisecond, start_time(ts)::DateTime, hostname(ts))
+    x_testsuite = testsuite_xml(get_description(ts), total_ntests, total_nfails, total_nerrors, x_testcases, time_taken(ts)::Millisecond, start_time(ts)::DateTime, hostname(ts))
     add_testsuite_properties!(x_testsuite, ts)
     x_testsuite, total_ntests, total_nfails, total_nerrors
 end
