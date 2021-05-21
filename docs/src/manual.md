@@ -13,7 +13,7 @@ Depth = 2
 The suggested approach is to use `TestReports.test`, but additionaly a
 [runner script](#Runner-Script) is also supplied.
 
-`TestReports.test` can be used in the same way as `Pkg.test`. It will run the package unit tests,
+`TestReports.test` can be used in the same way as `Pkg.test`. It will run the package tests
 and, by default, create a `testlog.xml` file in the current directory:
 
 ```julia
@@ -92,7 +92,7 @@ using TestReports
 end
 ```
 
-`recordproperty` will have no affect during normal unit testing.
+`recordproperty` will have no affect during normal testing with `Pkg.test`.
 
 The added properties will be added to the corresponding testsuite in the generated report.
 Multiple properties can be added, and a property added to a parent `TestSet` will be applied
@@ -103,10 +103,10 @@ displayed if both parent and child `TestSet` have the same property set (in whic
 the value set in the child will take be used in the report).
 
 The property name must always be a `String`, but the value can be anything that is serializable
-by `EzXML.jl`. In practice this means that `String`s, `Number`s, `Expr`s and `Symbols` can be used,
+by [`EzXML.jl`](https://github.com/JuliaIO/EzXML.jl). In practice this means that `String`s, `Number`s, `Expr`s and `Symbols` can be used,
 as well as other types.
 
-This example shows a more complete example:
+The following code block shows a more complete example:
 
 ```julia
 using Test
@@ -152,8 +152,10 @@ When a `Test` passes, the information about the test is not retained in the `Res
 This means that it cannot be reported, and the testcase for each passing test will be:
 
 ```xml
-<testcase name="pass (info lost)" id="_testcase_id_"/>
+<testcase name="pass (info lost) (Test 1)" id="_testcase_id_" classname="TestSet description" time="1.0" />
 ```
+
+Where the test number increments for each `Test` within a `TestSet`.
 
 This will hopefully be improved in the future - [see Julia#25483](https://github.com/JuliaLang/julia/issues/25483).
 
@@ -181,25 +183,26 @@ using Test
 end
 ```
 
-Will generate the following XML (when pretty printed):
+Will generate the following XML structure (when pretty printed):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="" id="_id_" tests="4" failures="0" errors="0">
-    <testsuite name="TopLevel/Middle1" id="_id_" tests="2" failures="0" errors="0">
-        <testcase name="pass (info lost)" id="_testcase_id_"/>
-        <testcase name="pass (info lost)" id="_testcase_id_"/>
+<testsuites tests="4" failures="0" errors="0">
+    <testsuite name="TopLevel/Middle1" tests="2" failures="0" errors="0" time="0.491" timestamp="2021-02-03T17:59:22.43" hostname="localhost" id="0">
+        <testcase name="pass (info lost) (Test 1)" id="_testcase_id_" classname="TopLevel/Middle1" time="0.208" />
+        <testcase name="pass (info lost) (Test 2)" id="_testcase_id_" classname="TopLevel/Middle1" time="0.000" />
     </testsuite>
-    <testsuite name="TopLevel/Middle2/Inner1" id="_id_" tests="1" failures="0" errors="0">
-        <testcase name="pass (info lost)" id="_testcase_id_"/>
+    <testsuite name="TopLevel/Middle2/Inner1" tests="1" failures="0" errors="0" time="0.000" timestamp="2021-02-03T17:59:22.921" hostname="localhost" id="1">
+        <testcase name="pass (info lost) (Test 1)" id="_testcase_id_" classname="TopLevel/Middle2/Inner1" time="0.000" />
     </testsuite>
-    <testsuite name="TopLevel" id="_id_" tests="1" failures="0" errors="0">
-        <testcase name="pass (info lost)" id="_testcase_id_"/>
+    <testsuite name="TopLevel" tests="1" failures="0" errors="0" time="0.491" timestamp="2021-02-03T17:59:22.43" hostname="localhost" id="2">
+        <testcase name="pass (info lost) (Test 1)" id="_testcase_id_" classname="TopLevel" time="0.000" />
     </testsuite>
 </testsuites>
 ```
 
-Each test is recorded in a separate testsuite with the name showing the original nesting.
+Each testset is recorded in a separate testsuite with the name showing the original nesting, and tests
+that are not in a testset are grouped into a testsuite called "TopLevel".
 
 ## Custom `TestSet` Types
 

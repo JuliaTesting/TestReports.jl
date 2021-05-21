@@ -5,9 +5,18 @@
 This package produces JUnit XML test reports. It is for use with your CI tooling of choice,
 for example a CI tool like GoCD consumes reports in this format and gives back HTML reports.
 
+## Installation
+
+This package is registered in the [General registry](https://github.com/JuliaRegistries/General) and can be installed using `Pkg.add`.
+
+```julia
+julia> using Pkg
+julia> Pkg.add("TestReports")
+```
+
 ## Getting Started
 
-The reporting is designed to enable you to write your unit tests in the standard Julia way,
+The reporting is designed to enable you to write your tests in the standard Julia way,
 that is using `test/runtests.jl` as the entry point to your tests and with default `TestSet`
 types. In theory, it should also work with custom `TestSet` types - see the [Manual](@ref) for 
 further information.
@@ -16,7 +25,7 @@ To test and generate a report for your package:
 
 ```julia
 julia> TestReports.test("MyPackage")
-# Unit tests run, report saved to testlog.xml in current working directory
+# Tests run, report saved to testlog.xml in current working directory
 ```
 
 To add to CI:
