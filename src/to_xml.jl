@@ -235,9 +235,9 @@ function to_xml(v::Broken)
 end
 
 function to_xml(v::Error)
-    message, type = get_error_info(v)
+    message, type, ntest = get_error_info(v)
     x_testcase = error_xml(message, type, v.backtrace)
-    x_testcase, 0, 0, 1  # Increment number of errors by 1
+    x_testcase, ntest, 0, 1  # Increment number of errors by 1
 end
 
 to_xml(v::ReportingResult) = to_xml(v.result)
@@ -245,25 +245,32 @@ to_xml(v::ReportingResult) = to_xml(v.result)
 """
     get_error_info(v::Error)
 
-Return message and type of error for testcase attribute. Uses `test_type`
-field to determine what caused the original error.
+Return message and type of error for testcase attribute, and number of tests
+(either 1 or 0). Uses `test_type` field to determine what caused the original
+error.
 """
 function get_error_info(v::Error)
     if v.test_type == :test_nonbool
         msg = "Expression evaluated to non-Boolean"
         type = "Expression evaluated to non-Boolean"
+        ntest = 1
     elseif v.test_type == :test_unbroken
         msg = "Got correct result, please change to @test if no longer broken."
         type = "Unexpected Pass"
+        ntest = 1
     elseif v.test_type == :nontest_error
         msg = "Got exception outside of a @test"
         type = typeof(eval(Meta.parse(v.value)))
-    else
+        ntest = 0
+    elseif v.test_type == :test_error
         err = eval(Meta.parse(v.value))
         msg = sprint(showerror, err)
         type = typeof(err)
+        ntest = 1
+    else
+        throw(PkgTestError("Unknown test type \"$(v.test_type)\" in Error"))
     end
-    return msg, type
+    return msg, type, ntest
 end
 
 """
