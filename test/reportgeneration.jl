@@ -181,3 +181,45 @@ end
     end
     @test TestReports.check_ts(ts) isa Any # Doesn't error
 end
+
+@testset "Error counting - Issue #72" begin
+    ts = @testset ReportingTestSet begin
+        @testset "nontest_error" begin
+            variableThatDoNotExits # No test here so shouldn't count
+        end
+        @testset "test_error" begin
+            @test variableThatDoNotExits == 42     
+        end
+        @testset "test_unbroken" begin
+            @test_broken true
+        end
+        @testset "test_nonbool" begin
+            @test 1
+        end
+    end
+    flattened_ts = TestReports.flatten_results!(ts)
+
+    # Test individual Errors
+    _, _, ntest = TestReports.get_error_info(ts.results[1].results[1].result)
+    @test ntest == 0
+    _, _, ntest = TestReports.get_error_info(ts.results[2].results[1].result)
+    @test ntest == 1
+    _, _, ntest = TestReports.get_error_info(ts.results[3].results[1].result)
+    @test ntest == 1
+    _, _, ntest = TestReports.get_error_info(ts.results[4].results[1].result)
+    @test ntest == 1
+    
+    # Test total numbers
+    xdoc = report(ts)
+    attrs = attributes(elements(xdoc.node)[1])
+    for attr in attrs
+        if attr.name == "errors"
+            @test attr.content == "4"
+        elseif attr.name == "tests"
+            @test attr.content == "3"
+        end
+    end
+
+    # Test unknown test_type field
+    @test_throws TestReports.PkgTestError TestReports.get_error_info(Error(Symbol(),nothing,nothing,nothing,LineNumberNode(1)))
+end
