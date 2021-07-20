@@ -14,8 +14,13 @@ get_deps(manifest, pkg) = get_deps!(String[], manifest, pkg)
 Push dependencies for `pkg` found in `manifest` into `deps`.
 """
 function get_deps!(deps, manifest, pkg)
-    if haskey(manifest[pkg][1], "deps")
-        for dep in manifest[pkg][1]["deps"]
+    if VERSION >= v"1.7.0-beta3"
+        manifest_dict = manifest["deps"]
+    else
+        manifest_dict = manifest
+    end
+    if haskey(manifest_dict[pkg][1], "deps")
+        for dep in manifest_dict[pkg][1]["deps"]
             if !(dep in deps)
                 push!(deps, dep)
                 get_deps!(deps, manifest, dep)
@@ -37,7 +42,12 @@ function get_manifest()
         manifest_path = replace(path, "Project.toml"=>"Manifest.toml")
         if isfile(manifest_path)
             manifest = Pkg.TOML.parsefile(manifest_path)
-            haskey(manifest, "TestReports") && return manifest
+            if VERSION >= v"1.7.0-beta3"
+                !haskey(manifest, "deps") && continue
+                haskey(manifest["deps"], "TestReports") && return manifest
+            else
+                haskey(manifest, "TestReports") && return manifest
+            end
         end
     end
 
@@ -55,14 +65,26 @@ from the parsed `manifest` provided.
 function make_testreports_environment(manifest)
     all_deps = get_deps(manifest, "TestReports")
     push!(all_deps, "TestReports")
-    new_manifest = Dict(pkg => manifest[pkg] for pkg in all_deps)
-
-    new_project = Dict(
-        "deps" => Dict(
-            "Test" => new_manifest["Test"][1]["uuid"],
-            "TestReports" => new_manifest["TestReports"][1]["uuid"]
+    if VERSION >= v"1.7.0-beta3"
+        new_manifest = Dict{String, Any}()
+        new_manifest["deps"] = Dict(pkg => manifest["deps"][pkg] for pkg in all_deps)
+        new_manifest["julia_version"] = manifest["julia_version"]
+        new_manifest["manifest_format"] = manifest["manifest_format"]
+        new_project = Dict(
+            "deps" => Dict(
+                "Test" => new_manifest["deps"]["Test"][1]["uuid"],
+                "TestReports" => new_manifest["deps"]["TestReports"][1]["uuid"]
+            )
         )
-    )
+    else
+        new_manifest = Dict(pkg => manifest[pkg] for pkg in all_deps)
+        new_project = Dict(
+            "deps" => Dict(
+                "Test" => new_manifest["Test"][1]["uuid"],
+                "TestReports" => new_manifest["TestReports"][1]["uuid"]
+            )
+        )
+    end
     testreportsenv = mktempdir()
     open(joinpath(testreportsenv, "Project.toml"), "w") do io
         Pkg.TOML.print(io, new_project)
@@ -163,16 +185,21 @@ is of type `Pkg.Types.Context`. For earlier versions, they are of type
 `Pkg.Types.EnvCache`.
 """
 function isinstalled!(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
-    @static if VERSION >= v"1.4.0"
+    @static if v"1.4.0" <= VERSION < v"1.7.0-beta3"
         var = ctx
     else
         var = ctx.env
     end
+    @static if VERSION >= v"1.7.0-beta3"
+        manifest_var = ctx.env.manifest
+    else
+        manifest_var = var
+    end
     project_resolve!(var, [pkgspec])
     project_deps_resolve!(var, [pkgspec])
-    manifest_resolve!(var, [pkgspec])
+    manifest_resolve!(manifest_var, [pkgspec])
     try
-        ensure_resolved(var, [pkgspec])
+        ensure_resolved(manifest_var, [pkgspec])
     catch
         return false
     end
@@ -186,7 +213,23 @@ Gets the testfile path of the package. Code for each Julia version mirrors that 
 in `Pkg/src/Operations.jl`.
 """
 function gettestfilepath(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
-    @static if VERSION >= v"1.4.0"
+    @static if VERSION >= v"1.7.0-beta3"
+        if is_project_uuid(ctx.env, pkgspec.uuid)
+            pkgspec.path = dirname(ctx.env.project_file)
+            pkgspec.version = ctx.env.pkg.version
+        else
+            entry = manifest_info(ctx.env.manifest, pkgspec.uuid)
+            pkgspec.version = entry.version
+            pkgspec.tree_hash = entry.tree_hash
+            pkgspec.repo = entry.repo
+            pkgspec.path = entry.path
+            pkgspec.pinned = entry.pinned
+            if isnothing(pkgspec.path)
+                pkgspec.path = source_path(ctx.env.project_file, pkgspec, ctx.julia_version)
+            end
+        end
+        pkgfilepath = source_path(ctx.env.project_file, pkgspec, ctx.julia_version)
+    elseif VERSION >= v"1.4.0"
         if is_project_uuid(ctx, pkgspec.uuid)
             pkgspec.path = dirname(ctx.env.project_file)
             pkgspec.version = ctx.env.pkg.version
@@ -334,7 +377,12 @@ function test!(pkg::AbstractString,
                             pkgspec,
                             pkgspec.path,
                             joinpath(pkgspec.path, "test"))
-            if VERSION >= v"1.4.0"
+            if VERSION >= v"1.7.0-beta3"
+                test_project_override = test_folder_has_project_file ?
+                    nothing :
+                    gen_target_project(ctx.env, ctx.registries, pkgspec, pkgspec.path, "test")
+                sandbox_args = (sandbox_args..., test_project_override)
+            elseif VERSION >= v"1.4.0"
                 test_project_override = test_folder_has_project_file ?
                     nothing :
                     gen_target_project(ctx, pkgspec, pkgspec.path, "test")
