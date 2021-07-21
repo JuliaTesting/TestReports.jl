@@ -217,7 +217,7 @@ function gettestfilepath(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
         if is_project_uuid(ctx.env, pkgspec.uuid)
             pkgspec.path = dirname(ctx.env.project_file)
             pkgspec.version = ctx.env.pkg.version
-        else
+        else !Pkg.Operations.is_stdlib(pkgspec.uuid)
             entry = manifest_info(ctx.env.manifest, pkgspec.uuid)
             pkgspec.version = entry.version
             pkgspec.tree_hash = entry.tree_hash
