@@ -244,6 +244,9 @@ function gettestfilepath(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
     return testfilepath
 end
 
+test_project_filepath(testfilepath) = joinpath(dirname(testfilepath), "Project.toml")
+has_test_project_file(testfilepath) = isfile(test_project_filepath(testfilepath))
+
 """
     checkexitcode!(errs, proc, pkg, logfilename)
 
@@ -315,12 +318,14 @@ function test!(pkg::AbstractString,
     Pkg.instantiate(ctx)
     testfilepath = gettestfilepath(ctx, pkgspec)
 
+    check_testreports_compatability(ctx, pkgspec, testfilepath)
+
     if !isfile(testfilepath)
         push!(notests, pkg)
     else
         runner_code = gen_runner_code(testfilepath, logfilename, test_args)
         cmd = gen_command(runner_code, julia_args, coverage)
-        test_folder_has_project_file = isfile(joinpath(dirname(testfilepath), "Project.toml"))
+        test_folder_has_project_file = has_test_project_file(testfilepath)
 
         if VERSION >= v"1.4.0" || (VERSION >= v"1.2.0" && test_folder_has_project_file)
             # Operations.sandbox() has different arguments between versions

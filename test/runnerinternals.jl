@@ -29,3 +29,33 @@ end
     @test_throws TestReports.PkgTestError throw(TestReports.PkgTestError("Test"))
     @test sprint(showerror, TestReports.PkgTestError("Error text"), "") == "Error text"
 end
+
+@testset "TestReports compatibility" begin
+    @test TestReports.compatible(v"0.0.1", "0.0.1")
+    @test !TestReports.compatible(v"0.0.2", "0.0.1")
+    @test !TestReports.compatible(v"0.0.1", "0.0.2")
+    @test !TestReports.compatible(v"0.1.0", "0.0.1")
+    @test !TestReports.compatible(v"0.0.1", "0.1.0")
+    @test TestReports.compatible(v"0.1.0", "0.1.0")
+    @test TestReports.compatible(v"0.1.1", "0.1.0")
+    @test !TestReports.compatible(v"0.1.0", "0.1.1")
+    @test !TestReports.compatible(v"0.1.0", "0.2.0")
+    @test !TestReports.compatible(v"0.2.0", "0.1.0")
+    @test !TestReports.compatible(v"1.0.0", "0.1.0")
+    @test !TestReports.compatible(v"0.1.0", "1.0.0")
+    @test TestReports.compatible(v"1.0.0", "1.0.0")
+    @test TestReports.compatible(v"1.1.0", "1.0.0")
+    @test TestReports.compatible(v"1.0.1", "1.0.0")
+    @test !TestReports.compatible(v"1.0.1", "=1.0.0")
+    @test !TestReports.compatible(v"1.1.0", "~1.0.0")
+    @test !TestReports.compatible(v"1.0.0", "1.1.0")
+    @test !TestReports.compatible(v"1.0.0", "1.0.1")
+
+    test_package_expected_fail("OldTestReportsInTarget")
+    test_package_expected_fail("OldTestReportsInTestDeps")
+    test_package_expected_fail("OldTestReportsInTestManifest")
+    test_package_expected_fail("OldTestReportsInDeps")
+    test_package_expected_fail("OldDepInTarget")
+    test_package_expected_fail("OldDepInTestDeps")
+    test_package_expected_fail("OldDepInTestManifest")
+end
