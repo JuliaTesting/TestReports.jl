@@ -155,7 +155,7 @@ function project_err_str(pkg, pkg_ver, dep, loc, tr_ver)
 end
 
 function manifest_err_str(pkg, pkg_ver, loc)
-    return """$(pkg) has version $pkg_ver of TestReports in its $loc manifestn
+    return """$(pkg) has version $pkg_ver of TestReports in its $loc manifest
         which is not compatible with TestReports version being used ($TESTREPORTS_VERSION)
         Either use TestReports@$(pkg_ver) for report generation or update manifest"""
 end
