@@ -93,12 +93,12 @@ Julia instance.
 function gen_runner_code(testfilename, logfilename, test_args)
     if Base.active_project() == joinpath(dirname(@__DIR__), "Project.toml")
         # TestReports is the active project, so push first so correct version is used
-        load_path_text = "pushfirst!(Base.LOAD_PATH, $(repr(dirname(@__DIR__))))"
+        testreportsenv = dirname(@__DIR__)
     else
         # TestReports is a dependency of one of the environments, find and build temporary environment
         testreportsenv = get_testreports_environment()
-        load_path_text = "push!(Base.LOAD_PATH, $(repr(testreportsenv)))"
     end
+    load_path_text = "pushfirst!(Base.LOAD_PATH, $(repr(testreportsenv)))"
 
     runner_code = """
         $(Base.load_path_setup_code(false))
