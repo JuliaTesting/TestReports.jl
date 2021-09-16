@@ -79,7 +79,6 @@ function check_env(env::Pkg.Types.EnvCache, pkg, loc, deps_to_check)
     check_manifest(env.manifest, pkg, loc)
     # Check deps
     for dep in deps_to_check
-        @show dep
         check_project(env.project, pkg, loc, dep)
         check_manifest(env.manifest, pkg, loc, dep)
     end
