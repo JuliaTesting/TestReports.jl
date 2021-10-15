@@ -52,10 +52,12 @@ end
     @test !TestReports.compatible(v"1.0.0", "1.0.1")
 
     test_package_expected_fail("OldTestReportsInTarget")
-    test_package_expected_fail("OldTestReportsInTestDeps")
-    test_package_expected_fail("OldTestReportsInTestManifest")
     test_package_expected_fail("OldTestReportsInDeps")
     test_package_expected_fail("OldDepInTarget")
-    test_package_expected_fail("OldDepInTestDeps")
-    test_package_expected_fail("OldDepInTestManifest")
+    if VERSION >= v"1.2.0"
+        test_package_expected_fail("OldTestReportsInTestDeps")
+        test_package_expected_fail("OldTestReportsInTestManifest")
+        test_package_expected_fail("OldDepInTestDeps")
+        test_package_expected_fail("OldDepInTestManifest")
+    end
 end

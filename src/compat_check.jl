@@ -12,58 +12,71 @@ compatible(current::VersionNumber, desired::Pkg.Types.VersionSpec) = current in 
 
 """
     check_project(project::Nothing, args...)
-check_project(project::Pkg.Types.Project, pkg, loc)
+    check_project(project, pkg, loc)
 
 Error if `project` has a version of TestReports which is incompatible with
 this version of TestReports.
 """
 check_project(project::Nothing, args...) = nothing
-function check_project(project::Pkg.Types.Project, pkg, loc)
-    if haskey(project.compat, "TestReports")
-        project_testreports_compat = project.compat["TestReports"]
+function check_project(project, pkg, loc)
+    if hascompat(project) && haskey(getcompat(project), "TestReports")
+        project_testreports_compat = getcompat(project)["TestReports"]
         !compatible(TESTREPORTS_VERSION, project_testreports_compat) && throw(PkgTestError(project_err_str(pkg, project_testreports_compat, loc)))
     end
 end
 
 """
-    check_project(project::Pkg.Types.Project, pkg, loc, deps::Vector)
-    check_project(project::Pkg.Types.Project, pkg, loc, dep)
+    check_project(project, pkg, loc, deps::Vector)
+    check_project(project, pkg, loc, dep)
 
 Error if `project` has shares a dependency with TestReports and the versions
 are incompatible between `project` and TestReports.
 """
-check_project(project::Pkg.Types.Project, pkg, loc, deps::Vector) = foreach((dep)->check_project(project, pkg, loc, dep), deps)
-function check_project(project::Pkg.Types.Project, pkg, loc, dep)
-    if haskey(project.compat, dep.name)
-        pkg_compat = project.compat[dep.name]
-        !compatible(dep.version, pkg_compat) && throw(PkgTestError(project_err_str(pkg, pkg_compat, dep.name, loc, dep.version)))
+check_project(project, pkg, loc, deps::Vector) = foreach((dep)->check_project(project, pkg, loc, dep), deps)
+function check_project(project, pkg, loc, dep)
+    if hascompat(project) && haskey(getcompat(project), getname(dep))
+        pkg_compat = getcompat(project)[getname(dep)]
+        !compatible(getversion(dep), pkg_compat) && throw(PkgTestError(project_err_str(pkg, pkg_compat, getname(dep), loc, getversion(dep))))
     end
 end
 
+# Functions that let us use a Dict (< v"1.0.5") or Pkg.Types.Project/Pkg.Types.Manifest (>= v"1.1.0)
+for value in ("compat", "name", "version", "deps")
+    fget = Symbol("get", value)
+    fhas = Symbol("has", value)
+    @eval $fget(obj::Dict) = obj[$value]
+    @eval $fhas(obj::Dict) = haskey(obj, $value)
+    @eval $fget(obj) = getproperty(obj, Symbol($value))
+    @eval $fhas(obj) = true
+end
+
+getuuid(dict::Dict) = dict["uuid"]
+getuuid(pkgentry) = pkgentry.other["uuid"]
+
 """
-    check_manifest(manifest::Pkg.Types.Manifest, pkg, loc)
+    check_manifest(manifest, pkg, loc)
 
 Error if `manifest` has a version of TestReports which is incompatible with
 this version of TestReports.
 """
-function check_manifest(manifest::Pkg.Types.Manifest, pkg, loc)
-    if haskey(manifest.deps, TESTREPORTS_UUID)
+function check_manifest(manifest, pkg, loc)
+    if hasdeps(manifest) && haskey(getdeps(manifest), TESTREPORTS_UUID)
         pkg_testreports_ver = manifest.deps[TESTREPORTS_UUID].version
         !compatible(TESTREPORTS_VERSION, pkg_testreports_ver) && throw(PkgTestError(manifest_err_str(pkg, pkg_testreports_ver, loc)))
     end
 end
 
 """
-    check_manifest(manifest::Pkg.Types.Manifest, pkg, deps_to_check)
+    check_manifest(manifest, pkg, deps_to_check)
 
 Error if `manifest` shares a dependency with TestReports and the versions
 are incompatible between `manifest` and TestReports.
 """
-function check_manifest(manifest::Pkg.Types.Manifest, pkg, loc, dep_to_check)
-    dep_uuid = Base.UUID(dep_to_check.other["uuid"])
-    if haskey(manifest.deps, dep_uuid)
-        pkg_dep_ver = manifest.deps[dep_uuid].version
-        !compatible(dep_to_check.version, pkg_dep_ver) && throw(PkgTestError(manifest_err_str(pkg, pkg_dep_ver, loc, dep_to_check.version)))
+function check_manifest(manifest, pkg, loc, dep_to_check)
+    dep_uuid = Base.UUID(getuuid(dep_to_check))
+    if hasdeps(manifest) && haskey(getdeps(manifest), dep_uuid)
+        pkg_dep_ver = getversion(getdeps(manifest)[dep_uuid])
+        !compatible(getversion(dep_to_check), pkg_dep_ver) && throw(PkgTestError(manifest_err_str(pkg, pkg_dep_ver, loc, getversion(dep_to_check))))
     end
 end
 
@@ -92,27 +105,56 @@ with the package being tested. A dependency needs to be checked if it is listed
 in both deps and compat section of TestReports Project.toml, as it is therefore
 not a stdlib or Julia.
 """
-function get_dep_entries()
-    # Get names
-    testreport_proj = Pkg.Types.EnvCache(joinpath(dirname(@__DIR__), "Project.toml")).project
-    dep_names_to_check = intersect(keys(testreport_proj.deps), keys(testreport_proj.compat)) # Ignores julia and stdlibs
+function get_dep_entries end
 
-    # Get PackageEntries from activte Manifest.toml or build from TestReports Project.toml
-    deps_to_check = Pkg.Types.PackageEntry[]
-    active_env = Pkg.Types.EnvCache(Base.active_project())
-    for dep in dep_names_to_check
-        if haskey(active_env.manifest.deps, testreport_proj.deps[dep])
-            push!(deps_to_check, active_env.manifest.deps[testreport_proj.deps[dep]])
-        else
-            pkg_entry = Pkg.Types.PackageEntry(
-                name=dep,
-                other=Dict("uuid" => testreport_proj.deps[dep]),
-                version=VersionNumber(testreport_proj.compat[dep])
-            )
-            push!(deps_to_check, pkg_entry)
+@static if VERSION >= v"1.1"
+    function get_dep_entries()
+        # Get names
+        testreport_proj = Pkg.Types.EnvCache(joinpath(dirname(@__DIR__), "Project.toml")).project
+        dep_names_to_check = intersect(keys(testreport_proj.deps), keys(testreport_proj.compat)) # Ignores julia and stdlibs
+
+        # Get PackageEntries from activte Manifest.toml or build from TestReports Project.toml
+        deps_to_check = Pkg.Types.PackageEntry[]
+        active_env = Pkg.Types.EnvCache(Base.active_project())
+        for dep in dep_names_to_check
+            if haskey(active_env.manifest.deps, testreport_proj.deps[dep])
+                push!(deps_to_check, active_env.manifest.deps[testreport_proj.deps[dep]])
+            else
+                pkg_entry = Pkg.Types.PackageEntry(
+                    name=dep,
+                    other=Dict("uuid" => testreport_proj.deps[dep]),
+                    version=VersionNumber(testreport_proj.compat[dep])
+                )
+                push!(deps_to_check, pkg_entry)
+            end
         end
+        return deps_to_check
     end
-    return deps_to_check
+else
+    function get_dep_entries()
+        # Get names
+        testreport_proj = Pkg.Types.EnvCache(joinpath(dirname(@__DIR__), "Project.toml")).project
+        dep_names_to_check = intersect(keys(getdeps(testreport_proj)), keys(getcompat(testreport_proj))) # Ignores julia and stdlibs
+
+        # Get PackageEntries from activte Manifest.toml or build from TestReports Project.toml
+        deps_to_check = Dict[]
+        active_env = Pkg.Types.EnvCache(Base.active_project())
+        for dep in dep_names_to_check
+            if haskey(active_env.manifest, dep)
+                dep_to_check = active_env.manifest[dep][1] # why is this a vector?
+                dep_to_check["name"] = dep
+                push!(deps_to_check, dep_to_check) 
+            else
+                pkg_entry = Dict(
+                    "name" => dep,
+                    "uuid" => testreport_proj["deps"][dep],
+                    "version" => VersionNumber(testreport_proj["compat"][dep])
+                )
+                push!(deps_to_check, pkg_entry)
+            end
+        end
+        return deps_to_check
+    end
 end
 
 """
@@ -124,19 +166,14 @@ TestReport and its dependencies.
 function check_testreports_compatability(ctx, pkgspec, testfilepath)
     deps_to_check = get_dep_entries()
 
-    # Check for TestReports in package Project.toml
+    # Check for TestReports and deps in package Project.toml (including extras)
     pkg_env = Pkg.Types.EnvCache(joinpath(pkgspec.path, "Project.toml"))
     check_env(pkg_env, pkgspec.name, "package", deps_to_check)
 
-    # Check for TestReports and its dependencies in test dependencies of package being tested
     if has_test_project_file(testfilepath)
-        # TestReports in test/Project.toml
+        # TestReports and deps in test/Project.toml
         test_env = Pkg.Types.EnvCache(test_project_filepath(testfilepath))
         check_env(test_env, pkgspec.name, "test", deps_to_check)
-    else
-        # TestReports in extras and compat
-        test_project = Pkg.Operations.gen_target_project(ctx, pkgspec, pkgspec.path, "test")
-        check_project(test_project, pkgspec.name, "package", deps_to_check)
     end
     return
 end

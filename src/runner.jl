@@ -239,6 +239,7 @@ function gettestfilepath(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
                 throw(PkgTestError("Could not find either `git-tree-sha1` or `path` for package $(pkgspec.name)"))
             end
         end
+        pkgspec.path = pkgfilepath
     end
     testfilepath = joinpath(pkgfilepath, "test", "runtests.jl")
     return testfilepath
