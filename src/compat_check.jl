@@ -40,8 +40,8 @@ function check_project(project, pkg, loc, dep)
     end
 end
 
-# Functions that let us use a Dict (< v"1.0.5") or Pkg.Types.Project/Pkg.Types.Manifest (>= v"1.1.0)
-for value in ("compat", "name", "version", "deps")
+# Functions that let us use a Dict (< v"1.0.5") or Pkg.Types.Project/Pkg.Types.PackageEntry (>= v"1.1.0)
+for value in ("compat", "name", "version")
     fget = Symbol("get", value)
     fhas = Symbol("has", value)
     @eval $fget(obj::Dict) = obj[$value]
@@ -50,7 +50,38 @@ for value in ("compat", "name", "version", "deps")
     @eval $fhas(obj) = true
 end
 
-getuuid(dict::Dict) = dict["uuid"]
+"""
+    hasdeps(manifest)
+
+Manifest structure changes with Julia version so we handle that here.
+"""
+function hasdeps(manifest)
+    @static if VERSION >= v"1.1.0"
+        # Manifest is either a dict of UUID to PackageEntry or a struct
+        return true
+    else
+        return haskey(manifest, "deps")
+    end
+end
+
+"""
+    getdeps(manifest)
+
+Manifest structure changes with Julia version so we handle that here.
+"""
+function getdeps(manifest)
+    @static if VERSION >= v"1.6.0"
+        # Manifest is a struct
+        return manifest.deps
+    elseif VERSION >= v"1.1.0"
+        # Manifest is a dict of UUID to PackageEntry
+        return manifest
+    else
+        return manifest["deps"]
+    end
+end
+
+getuuid(dict::Dict) = Base.UUID(dict["uuid"])
 getuuid(pkgentry) = pkgentry.other["uuid"]
 
 """
@@ -61,7 +92,7 @@ this version of TestReports.
 """
 function check_manifest(manifest, pkg, loc)
     if hasdeps(manifest) && haskey(getdeps(manifest), TESTREPORTS_UUID)
-        pkg_testreports_ver = manifest.deps[TESTREPORTS_UUID].version
+        pkg_testreports_ver = getversion(getdeps(manifest)[TESTREPORTS_UUID])
         !compatible(TESTREPORTS_VERSION, pkg_testreports_ver) && throw(PkgTestError(manifest_err_str(pkg, pkg_testreports_ver, loc)))
     end
 end
@@ -73,7 +104,7 @@ Error if `manifest` shares a dependency with TestReports and the versions
 are incompatible between `manifest` and TestReports.
 """
 function check_manifest(manifest, pkg, loc, dep_to_check)
-    dep_uuid = Base.UUID(getuuid(dep_to_check))
+    dep_uuid = getuuid(dep_to_check)
     if hasdeps(manifest) && haskey(getdeps(manifest), dep_uuid)
         pkg_dep_ver = getversion(getdeps(manifest)[dep_uuid])
         !compatible(getversion(dep_to_check), pkg_dep_ver) && throw(PkgTestError(manifest_err_str(pkg, pkg_dep_ver, loc, getversion(dep_to_check))))
@@ -117,8 +148,8 @@ function get_dep_entries end
         deps_to_check = Pkg.Types.PackageEntry[]
         active_env = Pkg.Types.EnvCache(Base.active_project())
         for dep in dep_names_to_check
-            if haskey(active_env.manifest.deps, testreport_proj.deps[dep])
-                push!(deps_to_check, active_env.manifest.deps[testreport_proj.deps[dep]])
+            if haskey(getdeps(active_env.manifest), testreport_proj.deps[dep])
+                push!(deps_to_check, getdeps(active_env.manifest)[testreport_proj.deps[dep]])
             else
                 pkg_entry = Pkg.Types.PackageEntry(
                     name=dep,
