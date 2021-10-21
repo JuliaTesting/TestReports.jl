@@ -1,0 +1,13 @@
+name = "OldTestReportsInTarget"
+uuid = "19d8228f-71fc-4fca-a505-eca906948e95"
+version = "0.1.0"
+
+[compat]
+TestReports = "0.3.0"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+TestReports = "dcd651b4-b50a-5b6b-8f22-87e9f253a252"
+
+[targets]
+test = ["Test", "TestReports"]

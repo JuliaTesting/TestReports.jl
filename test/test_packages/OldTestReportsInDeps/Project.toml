@@ -1,0 +1,9 @@
+name = "OldTestReportsInDeps"
+uuid = "19d8228f-71fc-4fca-a505-eca906948e9B"
+version = "0.1.0"
+
+[deps]
+TestReports = "dcd651b4-b50a-5b6b-8f22-87e9f253a252"
+
+[compat]
+TestReports = "0.3.0"

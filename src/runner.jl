@@ -93,12 +93,12 @@ Julia instance.
 function gen_runner_code(testfilename, logfilename, test_args)
     if Base.active_project() == joinpath(dirname(@__DIR__), "Project.toml")
         # TestReports is the active project, so push first so correct version is used
-        load_path_text = "pushfirst!(Base.LOAD_PATH, $(repr(dirname(@__DIR__))))"
+        testreportsenv = dirname(@__DIR__)
     else
         # TestReports is a dependency of one of the environments, find and build temporary environment
         testreportsenv = get_testreports_environment()
-        load_path_text = "push!(Base.LOAD_PATH, $(repr(testreportsenv)))"
     end
+    load_path_text = "pushfirst!(Base.LOAD_PATH, $(repr(testreportsenv)))"
 
     runner_code = """
         $(Base.load_path_setup_code(false))
@@ -239,10 +239,14 @@ function gettestfilepath(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
                 throw(PkgTestError("Could not find either `git-tree-sha1` or `path` for package $(pkgspec.name)"))
             end
         end
+        pkgspec.path = pkgfilepath
     end
     testfilepath = joinpath(pkgfilepath, "test", "runtests.jl")
     return testfilepath
 end
+
+test_project_filepath(testfilepath) = joinpath(dirname(testfilepath), "Project.toml")
+has_test_project_file(testfilepath) = isfile(test_project_filepath(testfilepath))
 
 """
     checkexitcode!(errs, proc, pkg, logfilename)
@@ -315,12 +319,14 @@ function test!(pkg::AbstractString,
     Pkg.instantiate(ctx)
     testfilepath = gettestfilepath(ctx, pkgspec)
 
+    check_testreports_compatability(ctx, pkgspec, testfilepath)
+
     if !isfile(testfilepath)
         push!(notests, pkg)
     else
         runner_code = gen_runner_code(testfilepath, logfilename, test_args)
         cmd = gen_command(runner_code, julia_args, coverage)
-        test_folder_has_project_file = isfile(joinpath(dirname(testfilepath), "Project.toml"))
+        test_folder_has_project_file = has_test_project_file(testfilepath)
 
         if VERSION >= v"1.4.0" || (VERSION >= v"1.2.0" && test_folder_has_project_file)
             # Operations.sandbox() has different arguments between versions
