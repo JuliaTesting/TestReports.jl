@@ -33,15 +33,13 @@ export ReportingTestSet, any_problems, report, recordproperty
 
 const TESTREPORTS_VERSION = let # Copied from Documenter.jl
     project = joinpath(dirname(dirname(pathof(TestReports))), "Project.toml")
-    toml = read(project, String)
-    m = match(r"(*ANYCRLF)^version\s*=\s\"(.*)\"$"m, toml)
-    VersionNumber(m[1])
+    toml = Pkg.TOML.parsefile(project)
+    VersionNumber(toml["version"])
 end
 const TESTREPORTS_UUID = let
     project = joinpath(dirname(dirname(pathof(TestReports))), "Project.toml")
-    toml = read(project, String)
-    m = match(r"(*ANYCRLF)^uuid\s*=\s\"(.*)\"$"m, toml)
-    Base.UUID(m[1])
+    toml = Pkg.TOML.parsefile(project)
+    Base.UUID(toml["uuid"])
 end
 
 include("v1_compat.jl")
