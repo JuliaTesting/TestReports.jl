@@ -14,7 +14,7 @@ get_deps(manifest, pkg) = get_deps!(String[], manifest, pkg)
 Push dependencies for `pkg` found in `manifest` into `deps`.
 """
 function get_deps!(deps, manifest, pkg)
-    if VERSION >= v"1.7.0-beta3"
+    if VERSION >= v"1.7.0"
         manifest_dict = manifest["deps"]
     else
         manifest_dict = manifest
@@ -42,7 +42,7 @@ function get_manifest()
         manifest_path = replace(path, "Project.toml"=>"Manifest.toml")
         if isfile(manifest_path)
             manifest = Pkg.TOML.parsefile(manifest_path)
-            if VERSION >= v"1.7.0-beta3"
+            if VERSION >= v"1.7.0"
                 !haskey(manifest, "deps") && continue
                 haskey(manifest["deps"], "TestReports") && return manifest
             else
@@ -65,7 +65,7 @@ from the parsed `manifest` provided.
 function make_testreports_environment(manifest)
     all_deps = get_deps(manifest, "TestReports")
     push!(all_deps, "TestReports")
-    if VERSION >= v"1.7.0-beta3"
+    if VERSION >= v"1.7.0"
         new_manifest = Dict{String, Any}()
         new_manifest["deps"] = Dict(pkg => manifest["deps"][pkg] for pkg in all_deps)
         new_manifest["julia_version"] = manifest["julia_version"]
@@ -185,12 +185,12 @@ is of type `Pkg.Types.Context`. For earlier versions, they are of type
 `Pkg.Types.EnvCache`.
 """
 function isinstalled!(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
-    @static if v"1.4.0" <= VERSION < v"1.7.0-beta3"
+    @static if v"1.4.0" <= VERSION < v"1.7.0"
         var = ctx
     else
         var = ctx.env
     end
-    @static if VERSION >= v"1.7.0-beta3"
+    @static if VERSION >= v"1.7.0"
         manifest_var = ctx.env.manifest
     else
         manifest_var = var
@@ -213,7 +213,7 @@ Gets the testfile path of the package. Code for each Julia version mirrors that 
 in `Pkg/src/Operations.jl`.
 """
 function gettestfilepath(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
-    @static if VERSION >= v"1.7.0-beta3"
+    @static if VERSION >= v"1.7.0"
         if is_project_uuid(ctx.env, pkgspec.uuid)
             pkgspec.path = dirname(ctx.env.project_file)
             pkgspec.version = ctx.env.pkg.version
@@ -377,7 +377,7 @@ function test!(pkg::AbstractString,
                             pkgspec,
                             pkgspec.path,
                             joinpath(pkgspec.path, "test"))
-            if VERSION >= v"1.7.0-beta3"
+            if VERSION >= v"1.7.0"
                 test_project_override = test_folder_has_project_file ?
                     nothing :
                     gen_target_project(ctx.env, ctx.registries, pkgspec, pkgspec.path, "test")

@@ -24,7 +24,7 @@ else
 end
 @static if VERSION >= v"1.2.0"
     using Pkg.Operations: sandbox, source_path
-    @static if VERSION < v"1.7.0-beta3" # TODO: replace with 1.7.0 everywhere
+    @static if VERSION < v"1.7.0"
         using Pkg.Operations: update_package_test!
     end
 else
