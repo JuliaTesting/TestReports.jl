@@ -8,8 +8,10 @@ Check whether `current` version is compatible with `desired`.
 """
 compatible(current::VersionNumber, desired::VersionNumber) = compatible(current, string(desired))
 compatible(current::VersionNumber, desired::String) = compatible(current, Pkg.Types.semver_spec(desired))
-compatible(current::VersionNumber, desired::Pkg.Types.Compat) = compatible(current, desired.val)
 compatible(current::VersionNumber, desired::Pkg.Types.VersionSpec) = current in desired
+@static if VERSION >= v"1.7.0"
+    compatible(current::VersionNumber, desired::Pkg.Types.Compat) = compatible(current, desired.val)
+end
 
 """
     check_project(project::Nothing, args...)
