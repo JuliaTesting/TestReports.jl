@@ -1,8 +1,3 @@
-using Dates
-using Test
-using Test: AbstractTestSet, Result, Pass, Fail, Broken, Error
-using TestReports
-
 @testset "handle_top_level_results!" begin
     # Simple top level resuls
     ts = @testset TestReportingTestSet "" begin
