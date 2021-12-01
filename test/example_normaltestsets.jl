@@ -29,7 +29,6 @@ using Base.Threads
         @test_broken sqrt(-1)
         @test 1/0 # not a real test
         @test 1 == error("Nooo") # error
-        @test 1 == rand(2,2)\rand(4,4) # deep error
         @test_broken true
 
     end
