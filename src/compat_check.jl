@@ -154,7 +154,11 @@ function get_dep_entries end
             if haskey(getdeps(active_env.manifest), testreport_proj.deps[dep])
                 push!(deps_to_check, getdeps(active_env.manifest)[testreport_proj.deps[dep]])
             else
-                version_number = isa(testreport_proj.compat[dep], String) ? VersionNumber(testreport_proj.compat[dep]) : VersionNumber(testreport_proj.compat[dep].str)
+                @static if VERSION >= v"1.7.0"
+                    version_number = VersionNumber(testreport_proj.compat[dep].str)
+                else
+                    version_number = VersionNumber(testreport_proj.compat[dep])
+                end
                 pkg_entry = Pkg.Types.PackageEntry(
                     name=dep,
                     other=Dict("uuid" => testreport_proj.deps[dep]),
