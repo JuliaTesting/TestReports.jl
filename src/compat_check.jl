@@ -9,6 +9,9 @@ Check whether `current` version is compatible with `desired`.
 compatible(current::VersionNumber, desired::VersionNumber) = compatible(current, string(desired))
 compatible(current::VersionNumber, desired::String) = compatible(current, Pkg.Types.semver_spec(desired))
 compatible(current::VersionNumber, desired::Pkg.Types.VersionSpec) = current in desired
+@static if VERSION >= v"1.7.0"
+    compatible(current::VersionNumber, desired::Pkg.Types.Compat) = compatible(current, desired.val)
+end
 
 """
     check_project(project::Nothing, args...)
@@ -151,10 +154,15 @@ function get_dep_entries end
             if haskey(getdeps(active_env.manifest), testreport_proj.deps[dep])
                 push!(deps_to_check, getdeps(active_env.manifest)[testreport_proj.deps[dep]])
             else
+                @static if VERSION >= v"1.7.0"
+                    version_number = VersionNumber(testreport_proj.compat[dep].str)
+                else
+                    version_number = VersionNumber(testreport_proj.compat[dep])
+                end
                 pkg_entry = Pkg.Types.PackageEntry(
                     name=dep,
                     other=Dict("uuid" => testreport_proj.deps[dep]),
-                    version=VersionNumber(testreport_proj.compat[dep])
+                    version=version_number
                 )
                 push!(deps_to_check, pkg_entry)
             end

@@ -23,7 +23,10 @@ else
     using Pkg.Operations: with_dependencies_loadable_at_toplevel
 end
 @static if VERSION >= v"1.2.0"
-    using Pkg.Operations: sandbox, source_path, update_package_test! 
+    using Pkg.Operations: sandbox, source_path
+    @static if VERSION < v"1.7.0"
+        using Pkg.Operations: update_package_test!
+    end
 else
     using Pkg.Operations: find_installed
     using Pkg.Types: SHA1

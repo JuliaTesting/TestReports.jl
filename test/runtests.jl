@@ -1,4 +1,9 @@
+using Dates
+using EzXML
+using ReferenceTests
 using Test
+using Test: AbstractTestSet, DefaultTestSet, Result, Pass, Fail, Broken, Error
+using Test: get_testset, get_testset_depth 
 using TestReports
 
 # Include utils

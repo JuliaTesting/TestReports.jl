@@ -1,9 +1,3 @@
-using EzXML
-using Test
-using Test: DefaultTestSet, AbstractTestSet, Error, get_testset, get_testset_depth 
-using ReferenceTests
-using TestReports
-
 @testset "recordproperty" begin
     @testset "Property recording" begin
         # Test for blanks in properties if nothing given 

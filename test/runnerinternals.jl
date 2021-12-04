@@ -56,8 +56,13 @@ end
     test_package_expected_fail("OldDepInTarget")
     if VERSION >= v"1.2.0"
         test_package_expected_fail("OldTestReportsInTestDeps")
-        test_package_expected_fail("OldTestReportsInTestManifest")
         test_package_expected_fail("OldDepInTestDeps")
-        test_package_expected_fail("OldDepInTestManifest")
+        if VERSION >= v"1.7.0"
+            test_package_expected_fail("OldTestReportsInTestManifest_1_7") # new manifest format
+            test_package_expected_fail("OldDepInTestManifest_1_7") # new manifest format
+        else
+            test_package_expected_fail("OldTestReportsInTestManifest")
+            test_package_expected_fail("OldDepInTestManifest")
+        end
     end
 end

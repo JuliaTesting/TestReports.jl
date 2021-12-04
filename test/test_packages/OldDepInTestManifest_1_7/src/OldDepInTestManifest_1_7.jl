@@ -1,0 +1,3 @@
+module OldDepInTestManifest_1_7
+
+end
