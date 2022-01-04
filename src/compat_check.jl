@@ -73,7 +73,7 @@ end
 Manifest structure changes with Julia version so we handle that here.
 """
 function getdeps(manifest)
-    @static if VERSION >= v"1.6.0"
+    @static if VERSION >= v"1.6.2"
         # Manifest is a struct
         return manifest.deps
     elseif VERSION >= v"1.1.0"
