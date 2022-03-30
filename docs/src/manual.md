@@ -146,17 +146,6 @@ This script creates a file `testlog.xml` in the current directory.
 
 ## Known Limitations
 
-### `Pass` Result Information
-
-When a `Test` passes, the information about the test is not retained in the `Result`.
-This means that it cannot be reported, and the testcase for each passing test will be:
-
-```xml
-<testcase name="pass (info lost)" id="_testcase_id_"/>
-```
-
-This will hopefully be improved in the future - [see Julia#25483](https://github.com/JuliaLang/julia/issues/25483).
-
 ### Single Nesting
 
 Julia `TestSet`s can be nested to an arbitary degree, but this is not allowed
@@ -185,16 +174,16 @@ Will generate the following XML (when pretty printed):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="" id="_id_" tests="4" failures="0" errors="0">
-    <testsuite name="TopLevel/Middle1" id="_id_" tests="2" failures="0" errors="0">
-        <testcase name="pass (info lost)" id="_testcase_id_"/>
-        <testcase name="pass (info lost)" id="_testcase_id_"/>
+<testsuites tests="4" failures="0" errors="0">
+    <testsuite name="TopLevel/Middle1" tests="2" failures="0" errors="0" time="0.156" timestamp="2022-03-30T07:55:12.173" hostname="hostname" id="0">
+        <testcase name="1 == 1" id="1" classname="TopLevel/Middle1" time="0.028"/>
+        <testcase name="2 == 2" id="2" classname="TopLevel/Middle1" time="0.000"/>
     </testsuite>
-    <testsuite name="TopLevel/Middle2/Inner1" id="_id_" tests="1" failures="0" errors="0">
-        <testcase name="pass (info lost)" id="_testcase_id_"/>
+    <testsuite name="TopLevel/Middle2/Inner1" tests="1" failures="0" errors="0" time="0.000" timestamp="2022-03-30T07:55:12.329" hostname="hostname" id="1">
+        <testcase name="1 == 1" id="1" classname="TopLevel/Middle2/Inner1" time="0.000"/>
     </testsuite>
-    <testsuite name="TopLevel" id="_id_" tests="1" failures="0" errors="0">
-        <testcase name="pass (info lost)" id="_testcase_id_"/>
+    <testsuite name="TopLevel" tests="1" failures="0" errors="0" time="0.156" timestamp="2022-03-30T07:55:12.173" hostname="hostname" id="2">
+        <testcase name="1 == 1" id="1" classname="TopLevel" time="0.000"/>
     </testsuite>
 </testsuites>
 ```

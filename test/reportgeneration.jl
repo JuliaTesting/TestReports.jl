@@ -7,11 +7,13 @@ using TestReports
 const TEST_PKG = (name = "Example", uuid = UUID("7876af07-990d-54b4-ab0e-23690620f79a"))
 
 @testset "SingleNest" begin
-    @test_reference "references/singlenest.txt" read(`$(Base.julia_cmd()) -e "using Test; using TestReports; (@testset ReportingTestSet \"blah\" begin @testset \"a\" begin @test 1 ==1 end end) |> report |> print"`, String) |>  clean_output
+    test_file = VERSION >= v"1.7.0" ? "references/singlenest.txt" : "references/singlenest_pre_1_7.txt"
+    @test_reference test_file read(`$(Base.julia_cmd()) -e "using Test; using TestReports; (@testset ReportingTestSet \"blah\" begin @testset \"a\" begin @test 1 ==1 end end) |> report |> print"`, String) |>  clean_output
 end
 
 @testset "Complex Example" begin
-    @test_reference "references/complexexample.txt" read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> clean_output
+    test_file = VERSION >= v"1.7.0" ? "references/complexexample.txt" : "references/complexexample_pre_1_7.txt"
+    @test_reference test_file read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> clean_output
 end
 
 @testset "Runner tests" begin

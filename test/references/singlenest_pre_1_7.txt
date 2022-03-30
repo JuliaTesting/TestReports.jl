@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="1" failures="0" errors="0"><testsuite name="a" tests="1" failures="0" errors="0" time="0.0" timestamp="0" hostname="localhost" id="0"><testcase name="pass (info lost) (Test 1)" id="1" classname="a" time="0.0"/></testsuite></testsuites>

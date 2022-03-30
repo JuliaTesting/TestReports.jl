@@ -49,7 +49,7 @@ to report an test failure in [DataDepsGenerators.jl](https://github.com/oxinabox
 
 ![Screenshot of GoCD web-interface showing failing tests](docs/src/assets/FailingTests.PNG)
 
-The corresponding `testlog.xml` file (after pretty printing) is below.
+The corresponding `testlog.xml` file (produced with an earlier version of `TestReports`, and therefore missing some of the new features, and after pretty printing) is below.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -78,7 +78,3 @@ The corresponding `testlog.xml` file (after pretty printing) is below.
   </testsuite>
 </testsuites>
 ```
-### Using directly
-I actually don't recommend using this directly in your tests.
-It is more flexible to just keep using the default testset type,
-and then use something like the Runner script to generate a wrapper of your tests with this testset around it.

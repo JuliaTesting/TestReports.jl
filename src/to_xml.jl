@@ -199,7 +199,8 @@ function to_xml(ts::AbstractTestSet)
         set_attribute!(x_testcase, "classname", ts.description)
         set_attribute!(x_testcase, "time", time_taken(result)::Millisecond)
         # Set attributes which require variables in this scope
-        (result isa Pass || result isa ReportingResult{Pass}) && set_attribute!(x_testcase, "name", x_testcase["name"] * " (Test $total_ntests)")
+        ntests > 0 && set_attribute!(x_testcase, "id", total_ntests)  # Ignore both testsuites and errors outside of tests
+        ispass(result) && VERSION < v"1.7.0" && set_attribute!(x_testcase, "name", x_testcase["name"] * " (Test $total_ntests)")
         x_testcase
     end
 
@@ -218,9 +219,16 @@ end
 Create a testcase node from the result and return it along with
 information on number of tests.
 """
-function to_xml(res::Pass)
-    x_testcase = testcase_xml("pass (info lost)", "_testcase_id_", [])
-    x_testcase, 1, 0, 0  # Increment number of tests by 1
+@static if VERSION >= v"1.7.0"
+    function to_xml(res::Pass)
+        x_testcase = testcase_xml(res.orig_expr, "_testcase_id_", [])
+        x_testcase, 1, 0, 0  # Increment number of tests by 1
+    end
+else
+    function to_xml(res::Pass)
+        x_testcase = testcase_xml("pass (info lost)", "_testcase_id_", [])
+        x_testcase, 1, 0, 0  # Increment number of tests by 1
+    end
 end
 
 function to_xml(v::Fail)
@@ -231,7 +239,7 @@ end
 
 function to_xml(v::Broken)
     x_testcase = testcase_xml(v, [skip_xml()]) # it is not actually skipped
-    x_testcase, 0, 0, 0
+    x_testcase, 1, 0, 0
 end
 
 function to_xml(v::Error)
