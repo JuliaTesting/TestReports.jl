@@ -28,6 +28,16 @@ time_taken(result::ReportingResult) = result.time_taken
 time_taken(result::Result) = Dates.Millisecond(0)
 
 """
+    ispass(result)
+
+Return `true` if `result` is a `Pass` or a `ReportingResult{Pass}`, otherwise
+return `false`.
+"""
+ispass(::Pass) = true
+ispass(result::ReportingResult{Pass}) = ispass(result.result)
+ispass(result) = false
+
+"""
     ReportingTestSet
 
 Custom `AbstractTestSet` type designed to be used by `TestReports.jl` for

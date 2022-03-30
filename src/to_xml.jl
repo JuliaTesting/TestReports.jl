@@ -200,7 +200,7 @@ function to_xml(ts::AbstractTestSet)
         set_attribute!(x_testcase, "time", time_taken(result)::Millisecond)
         # Set attributes which require variables in this scope
         ntests > 0 && set_attribute!(x_testcase, "id", total_ntests)  # Ignore both testsuites and errors outside of tests
-        (result isa Pass || result isa ReportingResult{Pass}) && VERSION < v"1.7.0" && set_attribute!(x_testcase, "name", x_testcase["name"] * " (Test $total_ntests)")
+        ispass(result) && VERSION < v"1.7.0" && set_attribute!(x_testcase, "name", x_testcase["name"] * " (Test $total_ntests)")
         x_testcase
     end
 

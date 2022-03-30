@@ -192,3 +192,10 @@ end
     test_package_expected_fail("NoResultsCustomTestSet")
     test_package_expected_fail("NoDescriptionCustomTestSet")
 end
+
+@testset "ispass" begin
+    @test TestReports.ispass(Pass(:a, 0, 0, 0))
+    @test !TestReports.ispass(Broken(:a, 0))
+    @test TestReports.ispass(TestReports.ReportingResult(Pass(:a, 0, 0, 0), Dates.Millisecond(1)))
+    @test !TestReports.ispass(TestReports.ReportingResult(Broken(:a, 0), Dates.Millisecond(1)))
+end
