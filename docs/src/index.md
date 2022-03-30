@@ -51,7 +51,7 @@ to report an test failure in [DataDepsGenerators.jl](https://github.com/oxinabox
 
 ![Screenshot of GoCD web-interface showing failing tests](assets/FailingTests.PNG)
 
-The corresponding `testlog.xml` file (after pretty printing) is below.
+The corresponding `testlog.xml` file (produced with an earlier version of `TestReports`, and therefore missing some of the new features, and after pretty printing) is below.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
