@@ -199,8 +199,13 @@ function isinstalled!(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
     project_deps_resolve!(var, [pkgspec])
     manifest_resolve!(manifest_var, [pkgspec])
     try
-        ensure_resolved(manifest_var, [pkgspec])
-    catch
+        @static if VERSION >= v"1.8.0"
+            ensure_resolved(ctx, manifest_var, [pkgspec])
+        else
+            ensure_resolved(manifest_var, [pkgspec])
+        end
+    catch err
+        err isa MethodError && rethrow()
         return false
     end
     return true
@@ -377,7 +382,12 @@ function test!(pkg::AbstractString,
                             pkgspec,
                             pkgspec.path,
                             joinpath(pkgspec.path, "test"))
-            if VERSION >= v"1.7.0"
+            if VERSION >= v"1.8.0"
+                test_project_override = test_folder_has_project_file ?
+                    nothing :
+                    gen_target_project(ctx, pkgspec, pkgspec.path::String, "test")
+                sandbox_args = (sandbox_args..., test_project_override)
+            elseif VERSION >= v"1.7.0"
                 test_project_override = test_folder_has_project_file ?
                     nothing :
                     gen_target_project(ctx.env, ctx.registries, pkgspec, pkgspec.path, "test")
