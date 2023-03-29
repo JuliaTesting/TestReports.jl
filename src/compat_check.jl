@@ -110,7 +110,7 @@ function check_manifest(manifest, pkg, loc, dep_to_check)
     dep_uuid = getuuid(dep_to_check)
     if hasdeps(manifest) && haskey(getdeps(manifest), dep_uuid)
         pkg_dep_ver = getversion(getdeps(manifest)[dep_uuid])
-        !compatible(getversion(dep_to_check), pkg_dep_ver) && throw(PkgTestError(manifest_err_str(pkg, pkg_dep_ver, loc, getversion(dep_to_check))))
+        !compatible(getversion(dep_to_check), pkg_dep_ver) && throw(PkgTestError(manifest_err_str(pkg, pkg_dep_ver, getname(dep_to_check), loc, getversion(dep_to_check))))
     end
 end
 
@@ -236,8 +236,8 @@ function manifest_err_str(pkg, pkg_ver, loc)
         Either use TestReports@$(pkg_ver) for report generation or update manifest"""
 end
 
-function manifest_err_str(pkg, pkg_ver, loc, tr_ver)
-    return """$pkg has version $pkg_ver of TestReports in its $loc manifest
+function manifest_err_str(pkg, pkg_ver, dep, loc, tr_ver)
+    return """$pkg has version $pkg_ver of $dep in its $loc manifest
         which is not compatible with the version being used by TestReports ($tr_ver)
         Update the compat entry of $pkg."""
 end
