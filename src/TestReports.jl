@@ -46,6 +46,7 @@ const TESTREPORTS_UUID = let
 end
 
 include("v1_compat.jl")
+include("version_utils.jl")
 include("./testsets.jl")
 include("to_xml.jl")
 include("compat_check.jl")

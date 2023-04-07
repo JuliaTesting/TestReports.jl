@@ -73,9 +73,11 @@ mutable struct ReportingTestSet <: AbstractTestSet
     time_taken::Millisecond
     last_record_time::DateTime
     hostname::String
+    verbose::Bool
+    showtiming::Bool
 end
 
-ReportingTestSet(desc) = ReportingTestSet(desc, [], Dict(), now(), Millisecond(0), now(), gethostname())
+ReportingTestSet(desc; verbose=false, showtiming=true) = ReportingTestSet(desc, [], Dict(), now(), Millisecond(0), now(), gethostname(), verbose, showtiming)
 function record(ts::ReportingTestSet, t::Result)
     push!(ts.results, ReportingResult(t, now()-ts.last_record_time))
     ts.last_record_time = now()
@@ -163,6 +165,12 @@ Sets the time taken field of a `ReportingTestSet`. This is used when flattening
 """
 set_time_taken!(ts::ReportingTestSet, time_taken::Millisecond) = ts.time_taken = time_taken
 set_time_taken!(ts::AbstractTestSet, time_taken::Millisecond) = nothing
+@V1_8 function set_time_taken!(ts::DefaultTestSet, time_taken::Millisecond) 
+    ts.time_start = 0
+    ts.time_end = time_taken.value / 1000
+    return ts
+end
+
 
 """
     set_start_time!(ts::ReportingTestSet, start_time)
@@ -340,7 +348,12 @@ function display_reporting_testset(ts::ReportingTestSet)
         # Finish each of the results of the top level testset, to mimick the
         # output from Pkg.test()
         for r in ts_default.results
-            r isa AbstractTestSet && finish(r)
+            if r isa DefaultTestSet
+                # finish sets `time_end=time()` for r. Previously we have set time_start to 0 and time_end to
+                # the time taken, so this is a way of ensuring the correct time is displayed
+                @V1_8 r.time_start = time() - r.time_end
+                finish(r)
+            end
         end
     catch err
         # Don't want to error here if a test fails or errors. This is handled elswhere.
@@ -366,7 +379,12 @@ add_to_ts_default!(ts_default::DefaultTestSet, result::ReportingResult) = add_to
 add_to_ts_default!(ts_default::DefaultTestSet, result::Result) = record(ts_default, result)
 add_to_ts_default!(ts_default::DefaultTestSet, ts::AbstractTestSet) = record(ts_default, ts)
 function add_to_ts_default!(ts_default::DefaultTestSet, ts::ReportingTestSet)
-    sub_ts = DefaultTestSet(ts.description)
+    if VERSION >= v"1.8.0"
+        sub_ts = DefaultTestSet(ts.description, showtiming=ts.showtiming, verbose=ts.verbose)
+        set_time_taken!(sub_ts, ts.time_taken)
+    else
+        sub_ts = DefaultTestSet(ts.description)
+    end
     add_to_ts_default!.(Ref(sub_ts), ts.results)
     push!(ts_default.results, sub_ts)
 end
