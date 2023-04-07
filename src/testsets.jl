@@ -339,9 +339,12 @@ function display_reporting_testset(ts::ReportingTestSet)
     try
         # Finish each of the results of the top level testset, to mimick the
         # output from Pkg.test()
-        finish.(ts_default.results)
-    catch TestSetException
+        for r in ts_default.results
+            r isa AbstractTestSet && finish(r)
+        end
+    catch err
         # Don't want to error here if a test fails or errors. This is handled elswhere.
+        !(err isa TestSetException) && rethrow()
     end
     return nothing
 end
