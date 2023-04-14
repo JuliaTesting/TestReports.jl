@@ -268,17 +268,37 @@ function get_error_info(v::Error)
         ntest = 1
     elseif v.test_type == :nontest_error
         msg = "Got exception outside of a @test"
-        type = typeof(eval(Meta.parse(v.value)))
+        type = parse_error_type(v.value)
         ntest = 0
     elseif v.test_type == :test_error
-        err = eval(Meta.parse(v.value))
-        msg = sprint(showerror, err)
-        type = typeof(err)
+        type = parse_error_type(v.value)
+        msg = parse_error_msg(v.value)
         ntest = 1
     else
         throw(PkgTestError("Unknown test type \"$(v.test_type)\" in Error"))
     end
     return msg, type, ntest
+end
+
+function parse_error_type(err_string)
+    try
+        # Return error type. Don't eval here as exception type might not be defined here
+        err_expr = Meta.parse(err_string)
+        return string(err_expr.args[1])
+    catch e
+        # Fallback, produces ugly output but at least it's there
+        return err_string
+    end
+end
+
+function parse_error_msg(err_string)
+    local err
+    try
+        err = eval(Meta.parse(err_string))
+    catch e
+        err = err_string
+    end
+    return sprint(showerror, err)
 end
 
 """
