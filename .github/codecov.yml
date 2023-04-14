@@ -1,0 +1,24 @@
+coverage:
+  status:
+    project:
+      default:
+        # basic
+        target: auto
+        threshold: 5%  # allow a drop of 5%
+        base: auto 
+        paths: 
+          - "src"
+        # advanced settings
+        branches: 
+          - master
+        if_ci_failed: success # success, failure, error, ignore
+    patch:
+      default:
+        # basic
+        target: 75%
+        threshold: 0%
+        base: auto 
+        # advanced
+        branches: 
+          - master
+        if_ci_failed: success #success, failure, error, ignore
