@@ -1,3 +1,6 @@
+
+struct CustomException <: Exception end
+
 @testset "get_error_info" begin
     @testset "type" begin
         # Argument error in test
@@ -26,11 +29,10 @@
         
         # Custom exception
         ts = @testset ReportingTestSet begin 
-            struct MyException <: Exception end
-            throw(MyException())
+            throw(CustomException())
         end
         err = ts.results[1].result
         _, type, _ = TestReports.get_error_info(err)
-        @test type == "MyException" 
+        @test type == "CustomException" 
     end
 end
