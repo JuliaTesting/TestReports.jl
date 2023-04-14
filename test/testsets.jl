@@ -199,3 +199,16 @@ end
     @test TestReports.ispass(TestReports.ReportingResult(Pass(:a, 0, 0, 0), Dates.Millisecond(1)))
     @test !TestReports.ispass(TestReports.ReportingResult(Broken(:a, 0), Dates.Millisecond(1)))
 end
+
+@testset "testset kwargs are handled - happy path" begin
+    ts = @testset ReportingTestSet "" begin
+        @testset verbose=true showtiming=false "Verbose" begin
+            @test true
+            @testset "inner" begin
+                @test 1+1 == 2
+                sleep(1)
+                @test true
+            end
+        end
+    end
+end
