@@ -40,3 +40,21 @@ struct CustomException <: Exception end
         @test type == "CustomException" 
     end
 end
+
+@testset "to_xml" begin
+    result = Pass(:null, nothing, nothing, nothing)
+    node, _, _, _ = TestReports.to_xml(result)
+    @test node.name == "testcase"
+
+    result = Fail(:test, :null, nothing, nothing, LineNumberNode(1))
+    node, _, _, _ = TestReports.to_xml(result)
+    @test node.name == "testcase"
+
+    result = Broken(:null, nothing)
+    node, _, _, _ = TestReports.to_xml(result)
+    @test node.name == "testcase"
+
+    result = Error(:test_nonbool, :null, nothing, nothing, LineNumberNode(1))
+    node, _, _, _ = TestReports.to_xml(result)
+    @test node.name == "testcase"
+end
