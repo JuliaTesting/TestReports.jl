@@ -244,7 +244,8 @@ end
 
 function to_xml(v::Error)
     message, type, ntest = get_error_info(v)
-    x_testcase = error_xml(message, type, v.backtrace)
+    x_error = error_xml(message, type, v.backtrace)
+    x_testcase = testcase_xml(v, [x_error])
     x_testcase, ntest, 0, 1  # Increment number of errors by 1
 end
 
