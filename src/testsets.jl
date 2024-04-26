@@ -105,8 +105,7 @@ function finish(ts::ReportingTestSet)
     # Display before flattening to match Pkg.test output
     display_reporting_testset(ts)
 
-    # We are the top level, lets do this
-    flatten_results!(ts)
+    return ts
 end
 
 #################################
@@ -207,29 +206,17 @@ any_problems(::Error) = true
 """
     flatten_results!(ts::AbstractTestSet)
 
-Returns a flat structure 3 deep, of `TestSet` -> `TestSet` -> `Result`. This is necessary
-for writing a report, as a JUnit XML does not allow one testsuite to be nested in another.
-The top level `TestSet` becomes the testsuites element, and the middle level `TestSet`s
-become individual testsuite elements, and the `Result`s become the testcase elements.
-
-If `ts.results` contains any `Result`s, these are added into a new `TestSet` with the
-description "Top level tests", which then replaces them in `ts.results`.
+Returns a flat vector of `TestSet`s which only contain `Result`s. This is necessary for
+writing a JUnit XML report the schema does not allow nested XML `testsuite` elements.
 """
-function flatten_results!(ts::AbstractTestSet)
-    # Add any top level Results to their own TestSet
-    handle_top_level_results!(ts)
-
-    # Flatten all results of top level testset, which should all be testsets now
-    ts.results = vcat(_flatten_results!.(ts.results)...)
-    return ts
-end
+flatten_results!(ts::AbstractTestSet) = _flatten_results!(ts, 0)
 
 """
     _flatten_results!(ts::AbstractTestSet)::Vector{<:AbstractTestSet}
 
 Recursively flatten `ts` to a vector of `TestSet`s.
 """
-function _flatten_results!(ts::AbstractTestSet)::Vector{<:AbstractTestSet}
+function _flatten_results!(ts::AbstractTestSet, depth::Int)::Vector{AbstractTestSet}
     original_results = ts.results
     has_new_properties = !isempty(something(properties(ts), tuple()))
     flattened_results = AbstractTestSet[]
@@ -245,13 +232,15 @@ function _flatten_results!(ts::AbstractTestSet)::Vector{<:AbstractTestSet}
     function inner!(childts::AbstractTestSet)
         # Make it a sibling
         update_testset_properties!(childts, ts)
-        childts.description = ts.description * "/" * childts.description
+        if depth > 0 || !isempty(ts.description)
+            childts.description = ts.description * "/" * childts.description
+        end
         push!(flattened_results, childts)
     end
 
     # Iterate through original_results
     for res in original_results
-        childs = _flatten_results!(res)
+        childs = _flatten_results!(res, depth + 1)
         for child in childs
             inner!(child)
         end
@@ -272,7 +261,7 @@ end
 Return vector containing `rs` so that when iterated through,
 `rs` is added to the results vector.
 """
-_flatten_results!(rs::Result) = [rs]
+_flatten_results!(rs::Result, depth::Int) = [rs]
 
 """
     update_testset_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
@@ -290,49 +279,26 @@ this is handled as follows:
 See also: [`properties`](@ref)
 """
 function update_testset_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
-    if isnothing(properties(childts)) && !isnothing(properties(ts)) && !isempty(properties(ts))
+    child_props = properties(childts)
+    parent_props = properties(ts)
+
+    if isnothing(child_props) && !isnothing(parent_props) && !isempty(parent_props)
         @warn "Properties of testset $(ts.description) can not be added to child testset $(childts.description) as it does not have a TestReports.properties method defined."
         # No need to check if childts is has properties defined and ts doesn't as if this is the case
         # ts has no properties to add to that of childts.
-    elseif !isnothing(properties(ts))
-        parent_keys = keys(properties(ts))
-        child_keys = keys(properties(childts))
+    elseif !isnothing(child_props) && !isnothing(parent_props)
+        parent_keys = keys(parent_props)
+        child_keys = keys(child_props)
         # Loop through keys so that warnings can be issued for any duplicates
         for key in parent_keys
             if key in child_keys
                 @warn "Property $key in testest $(ts.description) overwritten by child testset $(childts.description)"
             else
-                properties(childts)[key] = properties(ts)[key]
+                child_props[key] = parent_props[key]
             end
         end
     end
     return childts
-end
-
-"""
-    handle_top_level_results!(ts::AbstractTestSet)
-
-If `ts.results` contains any `Result`s, these are removed from `ts.results` and
-added to a new `ReportingTestSet`, which in turn is added to `ts.results`. This
-leaves `ts.results` only containing `AbstractTestSet`s.
-
-The `time_taken` field of the new `ReportingTestSet` is calculated by summing
-the time taken by the individual results, and the `start_time` field is set to
-the `start_time` field of `ts`.
-"""
-function handle_top_level_results!(ts::AbstractTestSet)
-    isa_Result = isa.(ts.results, Result)
-    if any(isa_Result)
-        original_results = ts.results
-        ts.results = AbstractTestSet[]
-        ts_nested = ReportingTestSet("Top level tests")
-        ts_nested.results = original_results[isa_Result]
-        set_time_taken!(ts_nested, sum(x -> time_taken(x)::Millisecond, ts_nested.results))
-        set_start_time!(ts_nested, start_time(ts)::DateTime)
-        push!(ts.results, ts_nested)
-        append!(ts.results, original_results[.!isa_Result])
-    end
-    return ts
 end
 
 """
