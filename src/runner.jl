@@ -150,12 +150,6 @@ Returns `Cmd` which will run the runner code in a new Julia instance.
 See also: [`gen_runner_code`](@ref)
 """
 function gen_command(runner_code, julia_args, coverage)
-    @static if VERSION >= v"1.5.0"
-        threads_cmd = `--threads=$(Threads.nthreads())`
-    else
-        threads_cmd = ``
-    end
-
     cmd = ```
         $(Base.julia_cmd())
         --code-coverage=$(coverage ? "user" : "none")
@@ -166,7 +160,7 @@ function gen_command(runner_code, julia_args, coverage)
         --inline=$(Bool(Base.JLOptions().can_inline) ? "yes" : "no")
         --startup-file=$(Base.JLOptions().startupfile == 1 ? "yes" : "no")
         --track-allocation=$(("none", "user", "all")[Base.JLOptions().malloc_log + 1])
-        $threads_cmd
+        --threads=$(Threads.nthreads())
         $(julia_args)
         --eval $(runner_code)
         ```
@@ -185,10 +179,10 @@ is of type `Pkg.Types.Context`. For earlier versions, they are of type
 `Pkg.Types.EnvCache`.
 """
 function isinstalled!(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
-    @static if v"1.4.0" <= VERSION < v"1.7.0"
-        var = ctx
-    else
+    @static if VERSION >= v"1.7.0"
         var = ctx.env
+    else
+        var = ctx
     end
     @static if VERSION >= v"1.7.0"
         manifest_var = ctx.env.manifest
@@ -234,7 +228,7 @@ function gettestfilepath(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
             end
         end
         pkgfilepath = source_path(ctx.env.project_file, pkgspec, ctx.julia_version)
-    elseif VERSION >= v"1.4.0"
+    else
         if is_project_uuid(ctx, pkgspec.uuid)
             pkgspec.path = dirname(ctx.env.project_file)
             pkgspec.version = ctx.env.pkg.version
@@ -243,51 +237,6 @@ function gettestfilepath(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
             pkgspec.path = project_rel_path(ctx, source_path(ctx, pkgspec))
         end
         pkgfilepath = source_path(ctx, pkgspec)
-    elseif VERSION >= v"1.2.0"
-        pkgspec.special_action = Pkg.Types.PKGSPEC_TESTED
-        if is_project_uuid(ctx.env, pkgspec.uuid)
-            pkgspec.path = dirname(ctx.env.project_file)
-            pkgspec.version = ctx.env.pkg.version
-        else
-            update_package_test!(pkgspec, manifest_info(ctx.env, pkgspec.uuid))
-            pkgspec.path = joinpath(project_rel_path(ctx, source_path(pkgspec)))
-        end
-        pkgfilepath = project_rel_path(ctx, source_path(pkgspec))
-    elseif VERSION >= v"1.1.0"
-        pkgspec.special_action = Pkg.Types.PKGSPEC_TESTED
-        if is_project_uuid(ctx.env, pkgspec.uuid)
-            pkgspec.version = ctx.env.pkg.version
-            pkgfilepath = dirname(ctx.env.project_file)
-        else
-            entry = manifest_info(ctx.env, pkg.uuid)
-            if entry.repo.tree_sha !== nothing
-                pkgfilepath = find_installed(pkgspec.name, pkgspec.uuid, entry.repo.tree_sha)
-            elseif entry.path !== nothing
-                pkgfilepath =  project_rel_path(ctx, entry.path)
-            elseif pkgspec.uuid in keys(ctx.stdlibs)
-                pkgfilepath = Pkg.Types.stdlib_path(pkgspec.name)
-            else
-                throw(PkgTestError("Could not find either `git-tree-sha1` or `path` for package $(pkgspec.name)"))
-            end
-        end
-    else
-        pkgspec.special_action = Pkg.Types.PKGSPEC_TESTED
-        if is_project_uuid(ctx.env, pkgspec.uuid)
-            pkgspec.version = ctx.env.pkg.version
-            pkgfilepath = dirname(ctx.env.project_file)
-        else        
-            info = manifest_info(ctx.env, pkgspec.uuid)
-            if haskey(info, "git-tree-sha1")
-                pkgfilepath = find_installed(pkgspec.name, pkgspec.uuid, SHA1(info["git-tree-sha1"]))
-            elseif haskey(info, "path")
-                pkgfilepath =  project_rel_path(ctx, info["path"])
-            elseif pkgspec.uuid in keys(ctx.stdlibs)
-                pkgfilepath = Pkg.Types.stdlib_path(pkgspec.name)
-            else
-                throw(PkgTestError("Could not find either `git-tree-sha1` or `path` for package $(pkgspec.name)"))
-            end
-        end
-        pkgspec.path = pkgfilepath
     end
     testfilepath = joinpath(pkgfilepath, "test", "runtests.jl")
     return testfilepath
@@ -376,42 +325,31 @@ function test!(pkg::AbstractString,
         cmd = gen_command(runner_code, julia_args, coverage)
         test_folder_has_project_file = has_test_project_file(testfilepath)
 
-        if VERSION >= v"1.4.0" || (VERSION >= v"1.2.0" && test_folder_has_project_file)
-            # Operations.sandbox() has different arguments between versions
-            sandbox_args = (ctx,
-                            pkgspec,
-                            pkgspec.path,
-                            joinpath(pkgspec.path, "test"))
-            if VERSION >= v"1.8.0"
-                test_project_override = test_folder_has_project_file ?
-                    nothing :
-                    gen_target_project(ctx, pkgspec, pkgspec.path::String, "test")
-                sandbox_args = (sandbox_args..., test_project_override)
-            elseif VERSION >= v"1.7.0"
-                test_project_override = test_folder_has_project_file ?
-                    nothing :
-                    gen_target_project(ctx.env, ctx.registries, pkgspec, pkgspec.path, "test")
-                sandbox_args = (sandbox_args..., test_project_override)
-            elseif VERSION >= v"1.4.0"
-                test_project_override = test_folder_has_project_file ?
-                    nothing :
-                    gen_target_project(ctx, pkgspec, pkgspec.path, "test")
-                sandbox_args = (sandbox_args..., test_project_override)
-            end
-
-            sandbox(sandbox_args...) do
-                flush(stdout)
-                runtests!(errs, pkg, cmd, logfilename)
-            end
+        # Operations.sandbox() has different arguments between versions
+        sandbox_args = (ctx,
+                        pkgspec,
+                        pkgspec.path,
+                        joinpath(pkgspec.path, "test"))
+        if VERSION >= v"1.8.0"
+            test_project_override = test_folder_has_project_file ?
+                nothing :
+                gen_target_project(ctx, pkgspec, pkgspec.path::String, "test")
+            sandbox_args = (sandbox_args..., test_project_override)
+        elseif VERSION >= v"1.7.0"
+            test_project_override = test_folder_has_project_file ?
+                nothing :
+                gen_target_project(ctx.env, ctx.registries, pkgspec, pkgspec.path, "test")
+            sandbox_args = (sandbox_args..., test_project_override)
         else
-            with_dependencies_loadable_at_toplevel(ctx, pkgspec; might_need_to_resolve=true) do localctx
-                Pkg.activate(localctx.env.project_file)
-                try
-                    runtests!(errs, pkg, cmd, logfilename)
-                finally
-                    Pkg.activate(ctx.env.project_file)
-                end
-            end
+            test_project_override = test_folder_has_project_file ?
+                nothing :
+                gen_target_project(ctx, pkgspec, pkgspec.path, "test")
+            sandbox_args = (sandbox_args..., test_project_override)
+        end
+
+        sandbox(sandbox_args...) do
+            flush(stdout)
+            runtests!(errs, pkg, cmd, logfilename)
         end
     end
 end

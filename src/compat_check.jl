@@ -76,11 +76,9 @@ function getdeps(manifest)
     @static if VERSION >= v"1.6.2"
         # Manifest is a struct
         return manifest.deps
-    elseif VERSION >= v"1.1.0"
+    else
         # Manifest is a dict of UUID to PackageEntry
         return manifest
-    else
-        return manifest["deps"]
     end
 end
 
@@ -141,59 +139,32 @@ not a stdlib or Julia.
 """
 function get_dep_entries end
 
-@static if VERSION >= v"1.1"
-    function get_dep_entries()
-        # Get names
-        testreport_proj = Pkg.Types.EnvCache(joinpath(dirname(@__DIR__), "Project.toml")).project
-        dep_names_to_check = intersect(keys(testreport_proj.deps), keys(testreport_proj.compat)) # Ignores julia and stdlibs
+function get_dep_entries()
+    # Get names
+    testreport_proj = Pkg.Types.EnvCache(joinpath(dirname(@__DIR__), "Project.toml")).project
+    dep_names_to_check = intersect(keys(testreport_proj.deps), keys(testreport_proj.compat)) # Ignores julia and stdlibs
 
-        # Get PackageEntries from activte Manifest.toml or build from TestReports Project.toml
-        deps_to_check = Pkg.Types.PackageEntry[]
-        active_env = Pkg.Types.EnvCache(Base.active_project())
-        for dep in dep_names_to_check
-            if haskey(getdeps(active_env.manifest), testreport_proj.deps[dep])
-                push!(deps_to_check, getdeps(active_env.manifest)[testreport_proj.deps[dep]])
+    # Get PackageEntries from activte Manifest.toml or build from TestReports Project.toml
+    deps_to_check = Pkg.Types.PackageEntry[]
+    active_env = Pkg.Types.EnvCache(Base.active_project())
+    for dep in dep_names_to_check
+        if haskey(getdeps(active_env.manifest), testreport_proj.deps[dep])
+            push!(deps_to_check, getdeps(active_env.manifest)[testreport_proj.deps[dep]])
+        else
+            @static if VERSION >= v"1.7.0"
+                version_number = VersionNumber(testreport_proj.compat[dep].str)
             else
-                @static if VERSION >= v"1.7.0"
-                    version_number = VersionNumber(testreport_proj.compat[dep].str)
-                else
-                    version_number = VersionNumber(testreport_proj.compat[dep])
-                end
-                pkg_entry = Pkg.Types.PackageEntry(
-                    name=dep,
-                    other=Dict("uuid" => testreport_proj.deps[dep]),
-                    version=version_number
-                )
-                push!(deps_to_check, pkg_entry)
+                version_number = VersionNumber(testreport_proj.compat[dep])
             end
+            pkg_entry = Pkg.Types.PackageEntry(
+                name=dep,
+                other=Dict("uuid" => testreport_proj.deps[dep]),
+                version=version_number
+            )
+            push!(deps_to_check, pkg_entry)
         end
-        return deps_to_check
     end
-else
-    function get_dep_entries()
-        # Get names
-        testreport_proj = Pkg.Types.EnvCache(joinpath(dirname(@__DIR__), "Project.toml")).project
-        dep_names_to_check = intersect(keys(getdeps(testreport_proj)), keys(getcompat(testreport_proj))) # Ignores julia and stdlibs
-
-        # Get PackageEntries from activte Manifest.toml or build from TestReports Project.toml
-        deps_to_check = Dict[]
-        active_env = Pkg.Types.EnvCache(Base.active_project())
-        for dep in dep_names_to_check
-            if haskey(active_env.manifest, dep)
-                dep_to_check = active_env.manifest[dep][1] # why is this a vector?
-                dep_to_check["name"] = dep
-                push!(deps_to_check, dep_to_check) 
-            else
-                pkg_entry = Dict(
-                    "name" => dep,
-                    "uuid" => testreport_proj["deps"][dep],
-                    "version" => VersionNumber(testreport_proj["compat"][dep])
-                )
-                push!(deps_to_check, pkg_entry)
-            end
-        end
-        return deps_to_check
-    end
+    return deps_to_check
 end
 
 """

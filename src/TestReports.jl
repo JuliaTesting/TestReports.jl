@@ -8,8 +8,8 @@ using Test
 
 using Pkg: PackageSpec
 using Pkg.Types: Context, ensure_resolved, is_project_uuid
-using Pkg.Operations: manifest_info, manifest_resolve!, project_deps_resolve!,
-    project_rel_path, project_resolve!
+using Pkg.Operations: gen_target_project, manifest_info, manifest_resolve!,
+    project_deps_resolve!, project_rel_path, project_resolve!, sandbox, source_path
 
 using Test: AbstractTestSet, DefaultTestSet, Result, Pass, Fail, Error, Broken,
     get_testset, get_testset_depth, scrub_backtrace
@@ -17,19 +17,8 @@ using Test: AbstractTestSet, DefaultTestSet, Result, Pass, Fail, Error, Broken,
 import Test: finish, record
 
 # Version specific imports
-@static if VERSION >= v"1.4.0"
-    using Pkg.Operations: gen_target_project
-else
-    using Pkg.Operations: with_dependencies_loadable_at_toplevel
-end
-@static if VERSION >= v"1.2.0"
-    using Pkg.Operations: sandbox, source_path
-    @static if VERSION < v"1.7.0"
-        using Pkg.Operations: update_package_test!
-    end
-else
-    using Pkg.Operations: find_installed
-    using Pkg.Types: SHA1
+@static if VERSION < v"1.7.0"
+    using Pkg.Operations: update_package_test!
 end
 
 export ReportingTestSet, any_problems, report, recordproperty
@@ -45,7 +34,6 @@ const TESTREPORTS_UUID = let
     Base.UUID(toml["uuid"])
 end
 
-include("v1_compat.jl")
 include("./testsets.jl")
 include("to_xml.jl")
 include("compat_check.jl")
