@@ -20,7 +20,7 @@ be in the report when `TestReport.test` is used, assuming that the parent testse
 type doesn't do anything to affect the reporting behaviour. However this is not tested
 functionality.
 
-`value` must be serializable by EzML, which gives quite a lot of freedom.
+`value` must be serializable by EzXML, which gives quite a lot of freedom.
 
 # Examples
 ```julia
