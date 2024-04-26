@@ -202,11 +202,12 @@ function to_xml(ts::AbstractTestSet)
         # Set attributes which require variables in this scope
         ntests > 0 && set_attribute!(x_testcase, "id", total_ntests)  # Ignore both testsuites and errors outside of tests
         ispass(result) && VERSION < v"1.7.0" && set_attribute!(x_testcase, "name", x_testcase["name"] * " (Test $total_ntests)")
+        add_properties!(x_testcase, test_properties(ts))
         x_testcase
     end
 
     x_testsuite = testsuite_xml(ts.description, total_ntests, total_nfails, total_nerrors, x_testcases, time_taken(ts)::Millisecond, start_time(ts)::DateTime, hostname(ts))
-    add_testsuite_properties!(x_testsuite, ts)
+    add_properties!(x_testsuite, testset_properties(ts))
     x_testsuite, total_ntests, total_nfails, total_nerrors
 end
 
@@ -322,7 +323,7 @@ function get_failure_message(v::Fail)
 end
 
 """
-    add_testsuite_properties!(x_testsuite, ts::AbstractTestSet)
+    add_properties!(x_element, properties)
 
 Add all key value pairs in the `properties` field of a `AbstractTestSet` to the
 corresponding testsuite xml element. This function assumes that the type of `ts`
@@ -330,17 +331,18 @@ has a `TestReports.properties` method defined.
 
 See also: [`properties`](@ref)
 """
-function add_testsuite_properties!(x_testsuite, ts::AbstractTestSet)
-    properties_dict = properties(ts)
-    if !isnothing(properties_dict) && !isempty(keys(properties_dict))
+function add_properties!(x_element, properties)
+    if !isempty(properties)
         x_properties = ElementNode("properties")
-        for (name, value) in properties_dict
+        for (name, value) in properties
             x_property = ElementNode("property")
             set_attribute!(x_property, "name", name)
             set_attribute!(x_property, "value", value)
             link!(x_properties, x_property)
         end
-        link!(x_testsuite, x_properties)
+        link!(x_element, x_properties)
     end
-    return x_testsuite
+    return x_element
 end
+
+add_properties!(x_element, properties::Nothing) = x_element
