@@ -56,18 +56,21 @@ and this is not recommended or supported.
 A `ReportingTestSet` has the `description` and `results` fields as per a
 `DefaultTestSet`, and has the following additional fields:
 
-- `properties`: used to record testsuite properties to be inserted into the report.
+- `testset_properties`: used to record testset properties to be inserted into the report.
+- `test_properties`: used to record test properties to be inserted into the report.
 - `start_time::DateTime`: the start date and time of the testing (local system time).
 - `time_taken::Millisecond`: the time taken in milliseconds to run the `TestSet`.
 - `last_record_time::DateTime`: the time when `record` was last called.
 - `hostname::String`: the name of host on which the testset was executed.
 
-See also: [`flatten_results!`](@ref), [`recordproperty`](@ref), [`report`](@ref)
+See also: [`flatten_results!`](@ref), [`record_testset_property`](@ref),
+[`record_testset_property`](@ref), and [`report`](@ref).
 """
 mutable struct ReportingTestSet <: AbstractTestSet
     description::String
     results::Vector
-    properties::Vector{Pair{String, Any}}
+    testset_properties::Vector{Pair{String, Any}}
+    test_properties::Vector{Pair{String, Any}}
     start_time::DateTime
     time_taken::Millisecond
     last_record_time::DateTime
@@ -76,7 +79,7 @@ mutable struct ReportingTestSet <: AbstractTestSet
     showtiming::Bool
 end
 
-ReportingTestSet(desc; verbose=false, showtiming=true) = ReportingTestSet(desc, [], [], now(), Millisecond(0), now(), gethostname(), verbose, showtiming)
+ReportingTestSet(desc; verbose=false, showtiming=true) = ReportingTestSet(desc, [], [], [], now(), Millisecond(0), now(), gethostname(), verbose, showtiming)
 
 function record(ts::ReportingTestSet, t::Result)
     push!(ts.results, ReportingResult(t, now()-ts.last_record_time))
@@ -113,27 +116,44 @@ end
 #################################
 
 """
-    properties(ts::AbstractTestSet) -> Union{Vector{Pair{String, Any}}, Nothing}
+    testset_properties(ts::AbstractTestSet) -> Union{Vector{Pair{String, Any}}, Nothing}
 
-Get the properties of a `ReportingTestSet`. Can be extended for custom testsets.
-Defaults to `nothing` for an `AbstractTestSet`.
-
-See also: [`recordproperty`](@ref) and [`recordproperty!`](@ref).
+Get the properties associated with a testset. Can be extended for custom testsets. Defaults
+to `nothing` for testsets which do not support testset properties.
 """
-properties(::AbstractTestSet) = nothing
-properties(ts::ReportingTestSet) = ts.properties
+testset_properties(::AbstractTestSet) = nothing
+testset_properties(ts::ReportingTestSet) = ts.testset_properties
 
 """
-    recordproperty!(ts::AbstractTestSet, name::AbstractString, value)
+    record_testset_property!(ts::AbstractTestSet, name, value)
 
 Associate a property with the testset. Can be extended for custom testsets.
-
-See also: [`properties`](@ref).
 """
-recordproperty!(ts::AbstractTestSet, name::AbstractString, value) = ts
+record_testset_property!(ts::AbstractTestSet, name::AbstractString, value) = ts
 
-function recordproperty!(ts::ReportingTestSet, name::AbstractString, value)
-    push!(ts.properties, name => value)
+function record_testset_property!(ts::ReportingTestSet, name::AbstractString, value)
+    push!(ts.testset_properties, name => value)
+    return ts
+end
+
+"""
+    test_properties(ts::AbstractTestSet) -> Union{Vector{Pair{String, Any}}, Nothing}
+
+Get the properties associated with tests within a testset. Can be extended for custom
+testsets. Will return `nothing` for testsets which do not support test properties.
+"""
+test_properties(::AbstractTestSet) = nothing
+test_properties(ts::ReportingTestSet) = ts.test_properties
+
+"""
+    record_test_property!(ts::AbstractTestSet, name, value)
+
+Associate a property with the tests within the testset. Can be extended for custom testsets.
+"""
+record_test_property!(ts::AbstractTestSet, name::AbstractString, value) = ts
+
+function record_test_property!(ts::ReportingTestSet, name::AbstractString, value)
+    push!(ts.test_properties, name => value)
     return ts
 end
 
@@ -242,7 +262,7 @@ Recursively flatten `ts` to a vector of `TestSet`s.
 """
 function _flatten_results!(ts::AbstractTestSet, depth::Int)::Vector{AbstractTestSet}
     original_results = ts.results
-    has_new_properties = !isempty(something(properties(ts), tuple()))
+    has_new_properties = !isempty(something(testset_properties(ts), tuple()))
     flattened_results = AbstractTestSet[]
     # Track results that are a Result so that if there are any, they can be added
     # in their own testset to flattened_results
@@ -255,7 +275,7 @@ function _flatten_results!(ts::AbstractTestSet, depth::Int)::Vector{AbstractTest
     end
     function inner!(childts::AbstractTestSet)
         # Make it a sibling
-        update_testset_properties!(childts, ts)
+        update_properties!(childts, ts)
         if depth > 0 || has_description(ts)
             childts.description = ts.description * "/" * childts.description
         end
@@ -288,7 +308,7 @@ Return vector containing `rs` so that when iterated through,
 _flatten_results!(rs::Result, depth::Int) = [rs]
 
 """
-    update_testset_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
+    update_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
 
 Adds properties of `ts` to `childts`.
 
@@ -300,22 +320,24 @@ handled as follows:
 - If method not defined for `typeof(childts)` and `ts` has properties, then a warning is
   shown.
 
-See also: [`properties`](@ref).
+See also: [`testset_properties`](@ref) and [`test_properties`](@ref).
 """
-function update_testset_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
-    child_props = properties(childts)
-    parent_props = properties(ts)
+function update_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
+    for properties in (testset_properties, test_properties)
+        child_props = properties(childts)
+        parent_props = properties(ts)
 
-    # Children inherit the properties of their parents
-    if !isnothing(parent_props) && !isempty(parent_props)
-        if !isnothing(child_props)
-            prepend!(child_props, parent_props)
-        else
-            @warn(
-                "Properties of testset \"$(ts.description)\" can not be added to " *
-                "child testset \"$(childts.description)\" as it does not have a " *
-                "`TestReports.properties` method defined."
-            )
+        # Children inherit the properties of their parents
+        if !isnothing(parent_props) && !isempty(parent_props)
+            if !isnothing(child_props)
+                prepend!(child_props, parent_props)
+            else
+                @warn(
+                    "Properties of testset \"$(ts.description)\" can not be added to " *
+                    "child testset \"$(childts.description)\" as it does not have a " *
+                    "`TestReports.$(nameof(properties))` method defined."
+                )
+            end
         end
     end
     return childts

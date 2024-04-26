@@ -77,30 +77,26 @@ julia> TestReports.test(["MyPackage1", "MyPackage2"], logfilename=["1.xml", "2.x
 # File paths are joinpath("path", "1.xml") and joinpath("path", "2.xml")
 ```
 
-## Adding Properties
+## Associating Properties
 
-Properties can be added to a `TestSet` using the exported function `recordproperty`
-within `runtests.jl` and other `include`d scripts:
+Properties can be associated to a testsets and/or tests by using the respective 
+`record_testset_property` and `record_test_property` functions within a testset:
 
 ```julia
 using Test
 using TestReports
 
 @testset "MyTests" begin
-    recordproperty("ID", 1)
-    @test 1==1
+    record_testset_property("ID", 1)
+    @test 1 == 1
 end
 ```
 
-`recordproperty` will have no affect during normal unit testing.
+The `record_*_property` functions will have no affect during normal unit testing.
 
-The added properties will be added to the corresponding testsuite in the generated report.
-Multiple properties can be added, and a property added to a parent `TestSet` will be applied
-to all child `TestSet`s.
-
-Properties with the same name are allowed to be set multiple times within the same
-`TestSet`. If both a parent and a child set the same named property both properties will
-appear in the child when generating the report.
+The associated properties will be added to the corresponding testsuite or testcase in the
+generated report. Multiple properties can be added, and a properties added to a parent
+testset will be applied to all child testsets. Duplicate properties are allowed to be set.
 
 The property name must always be a `String`, but the value can be anything that is serializable
 by `EzXML.jl`. In practice this means that `String`s, `Number`s, `Expr`s and `Symbols` can be used,
@@ -113,19 +109,21 @@ using Test
 using TestReports
 
 @testset "TopLevelTests" begin
-    recordproperty("TestFile" @__FILE__)  # This will be added to all child testsets in report
+    # This will be added to all child testsets in report. May not be appropriate when using
+    # `include`.
+    record_testset_property("TestFile", @__FILE__)
 
     @testset "MiddleLevelTests" begin
-        recordproperty("Testsuite", 100)
-        recordproperty("TestSubject", "Example")
+        record_testset_property("Testsuite", 100)
+        record_test_property("TestSubject", "Example")
 
         @testset "Inner" begin
-            recordproperty("Testsuite", 101)  # Both testsuite 100 and 101 apply to this testset
+            record_testset_property("Testsuite", 101)  # Associate with both testsuite 100 and 101
             @test 1 == 1
         end
 
         @testset "Types" begin
-            recordproperty("Prop1", :Val1)
+            record_test_property("Prop1", :Val1)
             @test 1 == 1
         end
     end

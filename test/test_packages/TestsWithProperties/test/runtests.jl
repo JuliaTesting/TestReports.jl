@@ -3,31 +3,39 @@ using TestReports
 using Base.Threads
 
 @testset "Outer" begin
-    recordproperty("File", "runtests.jl")
+    record_testset_property("File", "runtests.jl")
 
     @testset "Middle 1" begin
-        recordproperty("ID", 1)
+        record_testset_property("ID", 1)
         @test true
     end
 
     @test true
 
     @testset "Middle 2" begin
-        recordproperty("ID", 2)
+        record_testset_property("ID", 2)
         @test true
 
         @testset "Inner" begin
-            recordproperty("ID", 3)
-            recordproperty("AdditionalNest", true)
+            record_testset_property("AdditionalNest", true)
+        end
+    end
+
+    @testset "Middle 3" begin
+        record_test_property("ID", 3)
+        @test true
+
+        @testset "Inner" begin
+            record_test_property("AdditionalNest", true)
         end
     end
 end
 
 @testset "Types" begin
-    recordproperty("String", "TextTests")
-    recordproperty("Int", 1) 
-    recordproperty("Float", 0.5) 
-    recordproperty("List", ["1"]) 
-    recordproperty("Symbol", :asymbol) 
+    record_testset_property("String", "TextTests")
+    record_testset_property("Int", 1)
+    record_testset_property("Float", 0.5)
+    record_testset_property("List", ["1"])
+    record_testset_property("Symbol", :asymbol)
     @test true
 end

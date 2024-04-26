@@ -32,7 +32,7 @@ else
     using Pkg.Types: SHA1
 end
 
-export ReportingTestSet, any_problems, report, recordproperty
+export ReportingTestSet, any_problems, report, record_test_property, record_testset_property
 
 const TESTREPORTS_VERSION = let # Copied from Documenter.jl
     project = joinpath(dirname(dirname(pathof(TestReports))), "Project.toml")
@@ -50,6 +50,6 @@ include("./testsets.jl")
 include("to_xml.jl")
 include("compat_check.jl")
 include("runner.jl")
-include("recordproperty.jl")
+include("properties.jl")
 
 end # module

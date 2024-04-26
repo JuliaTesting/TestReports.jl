@@ -29,16 +29,15 @@ To add to CI:
 $ julia -e 'using Pkg; Pkg.add("TestReports"); using TestReports; TestReports.test("MyPackage")'
 ```
 
-Additionally, properties can be added to your `TestSet`s. To do this, use the `recordproperty`
-function like so:
+Additionally, properties can be associated with your testsets or tests. To do this, use the `record_testset_property` or `record_test_property` functions within a testset:
 
 ```julia
 using Test
 using TestReports
 
 @testset "MyTests" begin
-    recordproperty("ID", 1)
-    @test 1==1
+    record_testset_property("ID", 1)
+    @test 1 == 1
 end
 ```
 
