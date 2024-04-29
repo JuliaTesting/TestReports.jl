@@ -12,7 +12,13 @@ const TEST_PKG = (name = "Example", uuid = UUID("7876af07-990d-54b4-ab0e-2369062
 end
 
 @testset "Complex Example" begin
-    test_file = VERSION >= v"1.7.0" ? "references/complexexample.txt" : "references/complexexample_pre_1_7.txt"
+    test_file = if VERSION >= v"1.9.0-beta4.29"  # https://github.com/JuliaLang/julia/pull/48526
+        "references/complexexample.txt"
+    elseif VERSION >= v"1.7.0"
+        "references/complexexample_pre_1_9.txt"
+    else
+        "references/complexexample_pre_1_7.txt"
+    end
     @test_reference test_file read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> clean_output
 end
 
