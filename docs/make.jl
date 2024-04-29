@@ -2,7 +2,7 @@ using Documenter, TestReports
 
 makedocs(
     modules = [TestReports],
-    authors =  "Lyndon White, Malcolm Miller and contributors",
+    authors =  "Frames White, Malcolm Miller and contributors",
     sitename="TestReports.jl",
     checkdocs=:exports,
     format=Documenter.HTML(;
