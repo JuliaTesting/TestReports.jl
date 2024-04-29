@@ -12,14 +12,12 @@
 
         # Test nested testset
         ts = @testset ReportingTestSet "" begin
-        recordproperty("ID", "TopLevel")
+            recordproperty("ID", "TopLevel")
             @testset begin
                 recordproperty("Prop", "Inner 1")
-                @test 1 == 1
             end
             @testset begin
                 recordproperty("Prop", "Inner 2")
-                @test 2 == 2
             end
         end
         @test ts.properties["ID"] == "TopLevel"
@@ -35,11 +33,9 @@
                 recordproperty("ID", "TopLevel")
                 @testset begin
                     recordproperty("Prop", "Inner 1")
-                    @test 1 == 1
                 end
                 @testset begin
                     recordproperty("Prop", "Inner 2")
-                    @test 2 == 2
                 end
             end
         end
@@ -86,7 +82,6 @@
                 recordproperty("ID", "42")
                 @testset ReportingTestSet "Inner" begin
                     recordproperty("ID", "0")
-                    @test 1==1
                 end
             end
         end
@@ -100,7 +95,7 @@
             @testset ReportingTestSet "Outer" begin
                 recordproperty("ID", "42")
                 @testset TestReportingTestSet "Inner" begin
-                    @test 1==1
+                    @test 1 == 1
                 end
             end
         end
@@ -113,7 +108,7 @@
             @testset TestReportingTestSet "Custom" begin
                 ts = @testset ReportingTestSet "Inner" begin
                     recordproperty("ID", "42")
-                    @test 1==1
+                    @test 1 == 1
                 end
             end
         end
