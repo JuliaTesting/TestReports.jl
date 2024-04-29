@@ -73,8 +73,8 @@ end
     flattened_results = TestReports._flatten_results!(ts)
     @test length(flattened_results) == 2
     @test all(isa.(flattened_results, AbstractTestSet))
-    @test flattened_results[1].description == "Nested/1/2/3"
-    @test flattened_results[2].description == "Nested/1/2"
+    @test flattened_results[1].description == "Nested/1/2"
+    @test flattened_results[2].description == "Nested/1/2/3"
 end
 
 @testset "ReportingTestSet Display" begin

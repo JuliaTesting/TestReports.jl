@@ -44,14 +44,21 @@
         properties_nodes = lastnode.(elements(root(rep)))
 
         # Child properties are first in report
-        @test elements(properties_nodes[1])[1]["name"] == "Prop"
-        @test elements(properties_nodes[1])[1]["value"] == "Inner 1"
-        @test elements(properties_nodes[1])[2]["name"] == "ID"
-        @test elements(properties_nodes[1])[2]["value"] == "TopLevel"
+        @test length(elements(properties_nodes[1])) == 1
+        @test elements(properties_nodes[1])[1]["name"] == "ID"
+        @test elements(properties_nodes[1])[1]["value"] == "TopLevel"
+
+        @test length(elements(properties_nodes[2])) == 2
         @test elements(properties_nodes[2])[1]["name"] == "Prop"
-        @test elements(properties_nodes[2])[1]["value"] == "Inner 2"
+        @test elements(properties_nodes[2])[1]["value"] == "Inner 1"
         @test elements(properties_nodes[2])[2]["name"] == "ID"
         @test elements(properties_nodes[2])[2]["value"] == "TopLevel"
+
+        @test length(elements(properties_nodes[3])) == 2
+        @test elements(properties_nodes[3])[1]["name"] == "Prop"
+        @test elements(properties_nodes[3])[1]["value"] == "Inner 2"
+        @test elements(properties_nodes[3])[2]["name"] == "ID"
+        @test elements(properties_nodes[3])[2]["value"] == "TopLevel"
 
         # Test full packaage
         pkg = "TestsWithProperties"
@@ -88,7 +95,7 @@
         # Force flattening as ts doesn't finish fully as it is not the top level testset
         overwrite_text = "Property ID in testest Outer overwritten by child testset Inner"
         @test_logs (:warn, overwrite_text) TestReports.flatten_results!(ts)
-        @test ts.results[1].properties["ID"] == "0"
+        @test ts.results[2].properties["ID"] == "0"
 
         # Test for parent testset properties not being applied to child due to different type
         ts = @testset ReportingTestSet "" begin
