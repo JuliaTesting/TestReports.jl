@@ -231,7 +231,7 @@ Recursively flatten `ts` to a vector of `TestSet`s.
 """
 function _flatten_results!(ts::AbstractTestSet)::Vector{<:AbstractTestSet}
     original_results = ts.results
-    has_new_properties = !isempty(something(properties(ts), Dict()))
+    has_new_properties = !isempty(something(properties(ts), tuple()))
     flattened_results = AbstractTestSet[]
     # Track results that are a Result so that if there are any, they can be added
     # in their own testset to flattened_results
