@@ -3,7 +3,7 @@
 
     @testset "empty" begin
         ts = @testset ReportingTestSet begin end
-        @test testset_properties(ts) isa AbstractSet
+        @test testset_properties(ts) isa AbstractVector
         @test length(testset_properties(ts)) == 0
 
         ts = @testset "_" begin end
@@ -14,12 +14,12 @@
         ts = @testset ReportingTestSet begin
             record_testset_property("tested-item-id", "SAMD-45")
         end
-        @test testset_properties(ts) == Set(["tested-item-id" => "SAMD-45"])
+        @test testset_properties(ts) == ["tested-item-id" => "SAMD-45"]
 
         ts = @testset ReportingTestSet begin
             record_testset_property("count", 3)
         end
-        @test testset_properties(ts) == Set(["count" => 3])
+        @test testset_properties(ts) == ["count" => 3]
     end
 
     @testset "multiple properties" begin
@@ -27,13 +27,13 @@
             record_testset_property("tests", "ABC-789")
             record_testset_property("tests", "ABC-1011")
         end
-        @test testset_properties(ts) == Set(["tests" => "ABC-789", "tests" => "ABC-1011"])
+        @test testset_properties(ts) == ["tests" => "ABC-789", "tests" => "ABC-1011"]
 
         ts = @testset ReportingTestSet begin
             record_testset_property("tests", "ABC-789")
             record_testset_property("tests", "ABC-789")
         end
-        @test testset_properties(ts) == Set(["tests" => "ABC-789"])
+        @test testset_properties(ts) == ["tests" => "ABC-789", "tests" => "ABC-789"]
     end
 
     @testset "nested properties" begin
@@ -43,13 +43,13 @@
                 record_testset_property("tests", "ABC-1011")
             end
         end
-        @test testset_properties(ts) == Set(["tests" => "ABC-789"])
-        @test testset_properties(ts.results[1]) == Set(["tests" => "ABC-1011"])
+        @test testset_properties(ts) == ["tests" => "ABC-789"]
+        @test testset_properties(ts.results[1]) == ["tests" => "ABC-1011"]
 
         flattened_testsets = TestReports.flatten_results!(ts)
         @test length(flattened_testsets) == 2
-        @test testset_properties(flattened_testsets[1]) == Set(["tests" => "ABC-789"])
-        @test testset_properties(flattened_testsets[2]) == Set(["tests" => "ABC-789", "tests" => "ABC-1011"])
+        @test testset_properties(flattened_testsets[1]) == ["tests" => "ABC-789"]
+        @test testset_properties(flattened_testsets[2]) == ["tests" => "ABC-789", "tests" => "ABC-1011"]
 
         ts = @testset ReportingTestSet begin
             record_testset_property("tests", "ABC-789")
@@ -59,14 +59,14 @@
             @testset begin
             end
         end
-        @test testset_properties(ts) == Set(["tests" => "ABC-789"])
-        @test testset_properties(ts.results[1]) == Set(["tests" => "ABC-789"])
-        @test testset_properties(ts.results[2]) == Set()
+        @test testset_properties(ts) == ["tests" => "ABC-789"]
+        @test testset_properties(ts.results[1]) == ["tests" => "ABC-789"]
+        @test testset_properties(ts.results[2]) == []
 
         flattened_testsets = TestReports.flatten_results!(ts)
         @test length(flattened_testsets) == 2
-        @test testset_properties(flattened_testsets[1]) == Set(["tests" => "ABC-789"])
-        @test testset_properties(flattened_testsets[2]) == Set(["tests" => "ABC-789"])
+        @test testset_properties(flattened_testsets[1]) == ["tests" => "ABC-789"]
+        @test testset_properties(flattened_testsets[2]) == ["tests" => "ABC-789", "tests" => "ABC-789"]
     end
 
     @testset "custom testset support" begin
@@ -82,7 +82,7 @@
         fail_text = "Properties of testset \"Outer\" can not be added to child testset \"Inner\" as it does not have a `TestReports.testset_properties` method defined."
         flattened_testsets = @test_logs (:warn, fail_text) TestReports.flatten_results!(ts)
         @test length(flattened_testsets) == 2
-        @test testset_properties(flattened_testsets[1]) == Set(["ID" => "42"])
+        @test testset_properties(flattened_testsets[1]) == ["ID" => "42"]
         @test testset_properties(flattened_testsets[2]) === nothing
 
         # Test for ReportingTestSet setting a property inside of a parent custom testset
@@ -96,7 +96,7 @@
         end
         flattened_testsets = TestReports.flatten_results!(ts)
         @test length(flattened_testsets) == 1
-        @test testset_properties(flattened_testsets[1]) == Set(["ID" => "42"])
+        @test testset_properties(flattened_testsets[1]) == ["ID" => "42"]
     end
 
     @testset "ignore properties on unsupported test sets" begin
@@ -129,17 +129,17 @@
 
         testsuite_property_elements = findall("properties/property", testsuite_elements[2])
         @test length(testsuite_property_elements) == 2
-        @test testsuite_property_elements[1]["name"] == "Prop"
-        @test testsuite_property_elements[1]["value"] == "Inner 1"
-        @test testsuite_property_elements[2]["name"] == "ID"
-        @test testsuite_property_elements[2]["value"] == "TopLevel"
+        @test testsuite_property_elements[1]["name"] == "ID"
+        @test testsuite_property_elements[1]["value"] == "TopLevel"
+        @test testsuite_property_elements[2]["name"] == "Prop"
+        @test testsuite_property_elements[2]["value"] == "Inner 1"
 
         testsuite_property_elements = findall("properties/property", testsuite_elements[3])
         @test length(testsuite_property_elements) == 2
-        @test testsuite_property_elements[1]["name"] == "Prop"
-        @test testsuite_property_elements[1]["value"] == "Inner 2"
-        @test testsuite_property_elements[2]["name"] == "ID"
-        @test testsuite_property_elements[2]["value"] == "TopLevel"
+        @test testsuite_property_elements[1]["name"] == "ID"
+        @test testsuite_property_elements[1]["value"] == "TopLevel"
+        @test testsuite_property_elements[2]["name"] == "Prop"
+        @test testsuite_property_elements[2]["value"] == "Inner 2"
     end
 end
 
@@ -148,7 +148,7 @@ end
 
     @testset "empty" begin
         ts = @testset ReportingTestSet begin end
-        @test test_properties(ts) isa AbstractSet
+        @test test_properties(ts) isa AbstractVector
         @test length(test_properties(ts)) == 0
 
         ts = @testset "_" begin end
@@ -159,12 +159,12 @@ end
         ts = @testset ReportingTestSet begin
             record_test_property("tested-item-id", "SAMD-45")
         end
-        @test test_properties(ts) == Set(["tested-item-id" => "SAMD-45"])
+        @test test_properties(ts) == ["tested-item-id" => "SAMD-45"]
 
         ts = @testset ReportingTestSet begin
             record_test_property("count", 3)
         end
-        @test test_properties(ts) == Set(["count" => 3])
+        @test test_properties(ts) == ["count" => 3]
     end
 
     @testset "flattening eliminates testsets without tests" begin
@@ -180,7 +180,7 @@ end
         end
         flattened_testsets = TestReports.flatten_results!(ts)
         @test length(flattened_testsets) == 1
-        @test test_properties(flattened_testsets[1]) == Set(["tested-item-id" => "SAMD-45"])
+        @test test_properties(flattened_testsets[1]) == ["tested-item-id" => "SAMD-45"]
     end
 
     @testset "multiple properties" begin
@@ -188,13 +188,13 @@ end
             record_test_property("tests", "ABC-789")
             record_test_property("tests", "ABC-1011")
         end
-        @test test_properties(ts) == Set(["tests" => "ABC-789", "tests" => "ABC-1011"])
+        @test test_properties(ts) == ["tests" => "ABC-789", "tests" => "ABC-1011"]
 
         ts = @testset ReportingTestSet begin
             record_test_property("tests", "ABC-789")
             record_test_property("tests", "ABC-789")
         end
-        @test test_properties(ts) == Set(["tests" => "ABC-789"])
+        @test test_properties(ts) == ["tests" => "ABC-789", "tests" => "ABC-789"]
     end
 
     @testset "nested properties" begin
@@ -205,12 +205,12 @@ end
                 @test true
             end
         end
-        @test test_properties(ts) == Set(["tests" => "ABC-789"])
-        @test test_properties(ts.results[1]) == Set(["tests" => "ABC-1011"])
+        @test test_properties(ts) == ["tests" => "ABC-789"]
+        @test test_properties(ts.results[1]) == ["tests" => "ABC-1011"]
 
         flattened_testsets = TestReports.flatten_results!(ts)
         @test length(flattened_testsets) == 1
-        @test test_properties(flattened_testsets[1]) == Set(["tests" => "ABC-789", "tests" => "ABC-1011"])
+        @test test_properties(flattened_testsets[1]) == ["tests" => "ABC-789", "tests" => "ABC-1011"]
 
         ts = @testset ReportingTestSet begin
             record_test_property("tests", "ABC-789")
@@ -222,14 +222,14 @@ end
                 @test true
             end
         end
-        @test test_properties(ts) == Set(["tests" => "ABC-789"])
-        @test test_properties(ts.results[1]) == Set(["tests" => "ABC-789"])
-        @test test_properties(ts.results[2]) == Set()
+        @test test_properties(ts) == ["tests" => "ABC-789"]
+        @test test_properties(ts.results[1]) == ["tests" => "ABC-789"]
+        @test test_properties(ts.results[2]) == []
 
         flattened_testsets = TestReports.flatten_results!(ts)
         @test length(flattened_testsets) == 2
-        @test test_properties(flattened_testsets[1]) == Set(["tests" => "ABC-789"])
-        @test test_properties(flattened_testsets[2]) == Set(["tests" => "ABC-789"])
+        @test test_properties(flattened_testsets[1]) == ["tests" => "ABC-789", "tests" => "ABC-789"]
+        @test test_properties(flattened_testsets[2]) == ["tests" => "ABC-789"]
     end
 
     @testset "custom testset support" begin
@@ -258,7 +258,7 @@ end
         end
         flattened_testsets = TestReports.flatten_results!(ts)
         @test length(flattened_testsets) == 1
-        @test test_properties(flattened_testsets[1]) == Set(["ID" => "42"])
+        @test test_properties(flattened_testsets[1]) == ["ID" => "42"]
     end
 
     @testset "ignore properties on unsupported test sets" begin
@@ -285,19 +285,20 @@ end
         testsuite_elements = findall("//testsuite", root(rep))
         @test length(testsuite_elements) == 2
 
-        # Child properties are first in report
+        # Parent properties are first in report
         testcase_property_nodes = findall("testcase/properties/property", testsuite_elements[1])
         @test length(testcase_property_nodes) == 2
-        @test testcase_property_nodes[1]["name"] == "Prop"
-        @test testcase_property_nodes[1]["value"] == "Inner 1"
-        @test testcase_property_nodes[2]["name"] == "ID"
-        @test testcase_property_nodes[2]["value"] == "TopLevel"
+        @test testcase_property_nodes[1]["name"] == "ID"
+        @test testcase_property_nodes[1]["value"] == "TopLevel"
+        @test testcase_property_nodes[2]["name"] == "Prop"
+        @test testcase_property_nodes[2]["value"] == "Inner 1"
+
 
         testcase_property_nodes = findall("testcase/properties/property", testsuite_elements[2])
         @test length(testcase_property_nodes) == 2
-        @test testcase_property_nodes[1]["name"] == "Prop"
-        @test testcase_property_nodes[1]["value"] == "Inner 2"
-        @test testcase_property_nodes[2]["name"] == "ID"
-        @test testcase_property_nodes[2]["value"] == "TopLevel"
+        @test testcase_property_nodes[1]["name"] == "ID"
+        @test testcase_property_nodes[1]["value"] == "TopLevel"
+        @test testcase_property_nodes[2]["name"] == "Prop"
+        @test testcase_property_nodes[2]["value"] == "Inner 2"
     end
 end

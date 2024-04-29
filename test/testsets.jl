@@ -1,7 +1,7 @@
 @testset "record_test_property!" begin
     ts = @testset ReportingTestSet begin end
     @test TestReports.record_test_property!(ts, "id", 1) === ts
-    @test TestReports.test_properties(ts) == Set(["id" => 1])
+    @test TestReports.test_properties(ts) == ["id" => 1]
 end
 
 @testset "flatten_results!" begin

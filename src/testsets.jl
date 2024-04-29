@@ -69,8 +69,8 @@ See also: [`flatten_results!`](@ref), [`record_testset_property`](@ref),
 mutable struct ReportingTestSet <: AbstractTestSet
     description::String
     results::Vector
-    testset_properties::Set{Pair{String, Any}}
-    test_properties::Set{Pair{String, Any}}
+    testset_properties::Vector{Pair{String, Any}}
+    test_properties::Vector{Pair{String, Any}}
     start_time::DateTime
     time_taken::Millisecond
     last_record_time::DateTime
@@ -79,7 +79,7 @@ mutable struct ReportingTestSet <: AbstractTestSet
     showtiming::Bool
 end
 
-ReportingTestSet(desc; verbose=false, showtiming=true) = ReportingTestSet(desc, [], Set(), Set(), now(), Millisecond(0), now(), gethostname(), verbose, showtiming)
+ReportingTestSet(desc; verbose=false, showtiming=true) = ReportingTestSet(desc, [], [], [], now(), Millisecond(0), now(), gethostname(), verbose, showtiming)
 
 function record(ts::ReportingTestSet, t::Result)
     push!(ts.results, ReportingResult(t, now()-ts.last_record_time))
@@ -116,7 +116,7 @@ end
 #################################
 
 """
-    testset_properties(ts::AbstractTestSet) -> Union{Set{Pair{String, Any}}, Nothing}
+    testset_properties(ts::AbstractTestSet) -> Union{Vector{Pair{String, Any}}, Nothing}
 
 Get the properties associated with a testset. Can be extended for custom testsets. Will
 return `nothing` for testsets which do not support testset properties.
@@ -137,7 +137,7 @@ function record_testset_property!(ts::ReportingTestSet, name::AbstractString, va
 end
 
 """
-    test_properties(ts::AbstractTestSet) -> Union{Set{Pair{String, Any}}, Nothing}
+    test_properties(ts::AbstractTestSet) -> Union{Vector{Pair{String, Any}}, Nothing}
 
 Get the properties associated with tests within a testset. Can be extended for custom
 testsets. Will return `nothing` for testsets which do not support test properties.
@@ -331,7 +331,7 @@ function update_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
         # Children inherit the properties of their parents
         if !isnothing(parent_props) && !isempty(parent_props)
             if !isnothing(child_props)
-                union!(child_props, parent_props)
+                prepend!(child_props, parent_props)
             else
                 @warn(
                     "Properties of testset \"$(ts.description)\" can not be added to " *
