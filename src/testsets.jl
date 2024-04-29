@@ -204,6 +204,15 @@ any_problems(::Error) = true
 #####################
 
 """
+    has_description(ts::AbstractTestSet) -> Bool
+
+Determine if the testset has been provided a description.
+"""
+function has_description(ts::AbstractTestSet)
+    !isempty(ts.description) && ts.description != "test set"
+end
+
+"""
     flatten_results!(ts::AbstractTestSet)
 
 Returns a flat vector of `TestSet`s which only contain `Result`s. This is necessary for
@@ -232,7 +241,7 @@ function _flatten_results!(ts::AbstractTestSet, depth::Int)::Vector{AbstractTest
     function inner!(childts::AbstractTestSet)
         # Make it a sibling
         update_testset_properties!(childts, ts)
-        if depth > 0 || !isempty(ts.description)
+        if depth > 0 || has_description(ts)
             childts.description = ts.description * "/" * childts.description
         end
         push!(flattened_results, childts)

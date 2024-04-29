@@ -52,6 +52,16 @@
     @test length(flattened_testsets) == 1
     @test flattened_testsets[1].description == "Inner"
 
+    ts = @testset TestReportingTestSet begin
+        @testset "Inner" begin
+            @test 1 == 1
+            @test 2 == 2
+        end
+    end
+    flattened_testsets = TestReports.flatten_results!(ts)
+    @test length(flattened_testsets) == 1
+    @test flattened_testsets[1].description == "Inner"
+
     # Single nested test
     ts = @testset TestReportingTestSet "Nested" begin
         @testset "1" begin
