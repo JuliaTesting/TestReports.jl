@@ -87,14 +87,12 @@ end
     ]
     foreach(test_package_expected_pass, test_pkgs)
 
-    # Test file project file tests, 1.2 and above
-    @static if VERSION >= v"1.2.0"
-        test_pkgs = [
-            "TestsWithProjectFile",
-            "TestsWithProjectFileWithTestDeps"
-        ]
-        foreach(test_package_expected_pass, test_pkgs)
-    end
+    # Test file project file tests
+    test_pkgs = [
+        "TestsWithProjectFile",
+        "TestsWithProjectFileWithTestDeps"
+    ]
+    foreach(test_package_expected_pass, test_pkgs)
 
     # Test arguments
     temp_pkg_dir() do tmp
