@@ -325,11 +325,7 @@ end
 """
     add_properties!(x_element, properties)
 
-Add all key value pairs in the `properties` field of a `AbstractTestSet` to the
-corresponding testsuite xml element. This function assumes that the type of `ts`
-has a `TestReports.properties` method defined.
-
-See also: [`properties`](@ref)
+Add all key value pairs defined within the `properties` to the referenced XML element.
 """
 function add_properties!(x_element, properties)
     if !isempty(properties)

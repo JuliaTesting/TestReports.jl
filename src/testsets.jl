@@ -321,7 +321,7 @@ handled as follows:
 - If method not defined for `typeof(childts)` and `ts` has properties, then a warning is
   shown.
 
-See also: [`properties`](@ref)
+See also: [`testset_properties`](@ref) and [`test_properties`](@ref).
 """
 function update_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
     for properties in (testset_properties, test_properties)
