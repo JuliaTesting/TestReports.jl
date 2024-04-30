@@ -12,8 +12,8 @@ Documentation for `TestReports.jl`'s public interface.
 
 ```@docs
 TestReports.test
-recording_testset_property
-recording_test_property
+record_testset_property
+record_test_property
 ReportingTestSet
 any_problems
 report
