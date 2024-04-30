@@ -261,7 +261,7 @@ function _flatten_results!(ts::AbstractTestSet)::Vector{<:AbstractTestSet}
     if !isempty(results) || has_new_properties
         # Use same ts to preserve description
         ts.results = results
-        push!(flattened_results, ts)
+        pushfirst!(flattened_results, ts)
     end
     return flattened_results
 end
