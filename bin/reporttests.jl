@@ -12,7 +12,7 @@ ts = @testset ReportingTestSet "" begin
 end
 
 open("testlog.xml","w") do fh
-    print(fh, report(ts))
+    print(fh, report(TestReports.flatten_results!(ts)))
 end
 exit(any_problems(ts))
 """
