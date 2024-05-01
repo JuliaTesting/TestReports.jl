@@ -120,6 +120,11 @@ end
 
 Get the properties associated with a testset. Can be extended for custom testsets. Will
 return `nothing` for testsets which do not support testset properties.
+
+When generating a JUnit XML report these will be the properties associated with a
+`testsuite` element.
+
+See also: [`test_properties`](@ref).
 """
 testset_properties(::AbstractTestSet) = nothing
 testset_properties(ts::ReportingTestSet) = ts.testset_properties
@@ -141,6 +146,11 @@ end
 
 Get the properties associated with tests within a testset. Can be extended for custom
 testsets. Will return `nothing` for testsets which do not support test properties.
+
+When generating a JUnit XML report these will be the properties associated with all
+`testcase` elements contained within a `testsuite` element.
+
+See also: [`testset_properties`](@ref).
 """
 test_properties(::AbstractTestSet) = nothing
 test_properties(ts::ReportingTestSet) = ts.test_properties
