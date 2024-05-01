@@ -1,49 +1,67 @@
-@testset "handle_top_level_results!" begin
-    # Simple top level resuls
-    ts = @testset TestReportingTestSet "" begin
+@testset "flatten_results!" begin
+    # Simple top level results
+    ts = @testset TestReportingTestSet "Top-Level" begin
         @test 1 == 1
         @test 2 == 2
     end
-
-    TestReports.handle_top_level_results!(ts)
-    @test length(ts.results) == 1
-    @test ts.results[1] isa AbstractTestSet
-    @test length(ts.results[1].results) == 2
-    @test all(isa.(ts.results[1].results, Result))
+    flattened_testsets = TestReports.flatten_results!(ts)
+    @test length(flattened_testsets) == 1
+    @test all(ts -> ts isa AbstractTestSet, flattened_testsets)
+    @test flattened_testsets[1].description == "Top-Level"
+    @test length(flattened_testsets[1].results) == 2
+    @test all(r -> r isa Result, flattened_testsets[1].results)
 
     # Mix of top level testset and results
-    ts = @testset TestReportingTestSet "" begin
+    ts = @testset TestReportingTestSet "Top-Level" begin
         @test 1 == 1
         @test 2 == 2
         @testset "Inner" begin
             @test 3 == 3
             @test 4 == 4
         end
-    end 
+    end
+    flattened_testsets = TestReports.flatten_results!(ts)
+    @test length(flattened_testsets) == 2
+    @test all(ts -> ts isa AbstractTestSet, flattened_testsets)
+    @test flattened_testsets[1].description == "Top-Level"
+    @test length(flattened_testsets[1].results) == 2
+    @test all(r -> r isa Result, flattened_testsets[1].results)
+    @test flattened_testsets[2].description == "Top-Level/Inner"
+    @test length(flattened_testsets[2].results) == 2
+    @test all(r -> r isa Result, flattened_testsets[2].results)
 
-    TestReports.handle_top_level_results!(ts)
-    @test length(ts.results) == 2
-    @test all(isa.(ts.results,  AbstractTestSet))
-    @test length(ts.results[1].results) == 2
-    @test all(isa.(ts.results[1].results, Result))
-    @test length(ts.results[2].results) == 2
-    @test all(isa.(ts.results[2].results, Result))
-    @test ts.results[2].description == "Inner"
-
-    # Testset only
-    ts = @testset TestReportingTestSet "" begin
-        @testset "Shouldn't Change" begin
+    # Top-level named
+    ts = @testset TestReportingTestSet "Top-Level" begin
+        @testset "Inner" begin
             @test 1 == 1
             @test 2 == 2
         end
     end
+    flattened_testsets = TestReports.flatten_results!(ts)
+    @test length(flattened_testsets) == 1
+    @test flattened_testsets[1].description == "Top-Level/Inner"
 
-    TestReports.handle_top_level_results!(ts)
-    @test length(ts.results) == 1
-    @test ts.results[1].description == "Shouldn't Change"
-end
+    # Top-level unnamed
+    ts = @testset TestReportingTestSet "" begin
+        @testset "Inner" begin
+            @test 1 == 1
+            @test 2 == 2
+        end
+    end
+    flattened_testsets = TestReports.flatten_results!(ts)
+    @test length(flattened_testsets) == 1
+    @test flattened_testsets[1].description == "Inner"
 
-@testset "_flatten_results!" begin
+    ts = @testset TestReportingTestSet begin
+        @testset "Inner" begin
+            @test 1 == 1
+            @test 2 == 2
+        end
+    end
+    flattened_testsets = TestReports.flatten_results!(ts)
+    @test length(flattened_testsets) == 1
+    @test flattened_testsets[1].description == "Inner"
+
     # Single nested test
     ts = @testset TestReportingTestSet "Nested" begin
         @testset "1" begin
@@ -54,10 +72,10 @@ end
             end
         end
     end
-    flattened_results = TestReports._flatten_results!(ts)
-    @test length(flattened_results) == 1
-    @test flattened_results[1] isa AbstractTestSet
-    @test flattened_results[1].description == "Nested/1/2/3"
+    flattened_testsets = TestReports.flatten_results!(ts)
+    @test length(flattened_testsets) == 1
+    @test flattened_testsets[1] isa AbstractTestSet
+    @test flattened_testsets[1].description == "Nested/1/2/3"
 
     # Different level nested tests
     ts = @testset TestReportingTestSet "Nested" begin
@@ -70,11 +88,11 @@ end
             end
         end
     end
-    flattened_results = TestReports._flatten_results!(ts)
-    @test length(flattened_results) == 2
-    @test all(isa.(flattened_results, AbstractTestSet))
-    @test flattened_results[1].description == "Nested/1/2"
-    @test flattened_results[2].description == "Nested/1/2/3"
+    flattened_testsets = TestReports.flatten_results!(ts)
+    @test length(flattened_testsets) == 2
+    @test all(ts -> ts isa AbstractTestSet, flattened_testsets)
+    @test flattened_testsets[1].description == "Nested/1/2"
+    @test flattened_testsets[2].description == "Nested/1/2/3"
 end
 
 @testset "ReportingTestSet Display" begin

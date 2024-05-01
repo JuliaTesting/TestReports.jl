@@ -120,30 +120,29 @@ end
 #####################
 
 """
-    report(ts::AbstractTestSet)
+    report(ts::AbstractTestSet) -> XMLDocument
 
-Will produce an `XMLDocument` that contains a report about the `TestSet`'s results.
-This report will follow the JUnit XML schema.
+Produce an JUnit XML report details about the contained `TestSet`s and `Result`s. As the
+JUnit XML schema does not allow nested `testsuite` elements the report will flatten the
+hierarchical `TestSet` structure. Each `TestSet` will become a `testsuite` element and each
+`Result` will become a `testcase` element.
 
-To report correctly, the `TestSet` must have the following structure:
+A `Result` will only be reported once within its parent `TestSet` to avoid having duplicate
+entries within the report and avoid problems with total test counts not matching Julia
+output.
 
-    AbstractTestSet
-      └─ AbstractTestSet
-           └─ AbstractResult
-
-That is, the results of the top level `TestSet` must all be `AbstractTestSet`s,
-and the results of those `TestSet`s must all be `Result`s.
-
-Additionally, all of the `AbstractTestSet`s must have both `description` and
-`results` fields.
+All `AbstractTestSet`s contained within `ts` must have a `description::AbstractString` field
+and an iterable `results` field.
 """
-function report(ts::AbstractTestSet)
-    check_ts(ts)
+report(ts::AbstractTestSet) = report(flatten_results!(deepcopy(ts)))
+
+function report(testsets::Vector{<:AbstractTestSet})
+    check_ts(testsets)
     total_ntests = 0
     total_nfails = 0
     total_nerrors = 0
     testsuiteid = 0 # ID increments from 0
-    x_testsuites = map(ts.results) do result
+    x_testsuites = map(testsets) do result
         x_testsuite, ntests, nfails, nerrors = to_xml(result)
         total_ntests += ntests
         total_nfails += nfails
@@ -159,7 +158,7 @@ function report(ts::AbstractTestSet)
                                          total_nerrors,
                                          x_testsuites))
     
-    xdoc
+    return xdoc
 end
 
 """
@@ -170,11 +169,13 @@ the results of `ts` do not have both `description` or `results` fields.
 
 See also: [`report`](@ref)
 """
-function check_ts(ts::AbstractTestSet)
-    !all(isa.(ts.results, AbstractTestSet)) && throw(ArgumentError("Results of ts must all be AbstractTestSets. See documentation for `report`."))
-    for results_ts in ts.results
-        !isa(results_ts.description, AbstractString) && throw(ArgumentError("description field of $(typeof(results_ts)) must be an AbstractString."))
-        !all(isa.(results_ts.results, Result)) && throw(ArgumentError("Results of each AbstractTestSet in ts.results must all be Results. See documentation for `report`."))
+function check_ts(testsets::Vector{<:AbstractTestSet})
+    for ts in testsets
+        if !isa(ts.description, AbstractString)
+            throw(ArgumentError("description field of $(typeof(ts)) must be an `AbstractString`."))
+        elseif !all(r -> r isa Result, ts.results)
+            throw(ArgumentError("Results of each `AbstractTestSet` in ts.results must all be `Result`s. See documentation for `report`."))
+        end
     end
 end
 

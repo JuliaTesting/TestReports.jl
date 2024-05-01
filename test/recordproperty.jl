@@ -94,8 +94,9 @@
         end
         # Force flattening as ts doesn't finish fully as it is not the top level testset
         overwrite_text = "Property ID in testest Outer overwritten by child testset Inner"
-        @test_logs (:warn, overwrite_text) TestReports.flatten_results!(ts)
-        @test ts.results[2].properties["ID"] == "0"
+        flattened_testsets = @test_logs (:warn, overwrite_text) TestReports.flatten_results!(ts)
+        @test length(flattened_testsets) == 2
+        @test flattened_testsets[2].properties["ID"] == "0"
 
         # Test for parent testset properties not being applied to child due to different type
         ts = @testset ReportingTestSet "" begin
@@ -120,8 +121,9 @@
             end
         end
         # Force flattening as ts doesn't finish fully as it is not the top level testset
-        TestReports.flatten_results!(ts)
-        @test ts.results[1].properties["ID"] == "42"
+        flattened_testsets = TestReports.flatten_results!(ts)
+        @test length(flattened_testsets) == 1
+        @test flattened_testsets[1].properties["ID"] == "42"
 
         # Error if attempting to add property to AbstractTestSet which has properties field with wrong type
         ts = @testset WrongPropsTestSet begin; recordproperty("id",1); end
