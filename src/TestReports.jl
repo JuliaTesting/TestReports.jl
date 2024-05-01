@@ -51,6 +51,5 @@ include("to_xml.jl")
 include("compat_check.jl")
 include("runner.jl")
 include("properties.jl")
-include("deprecated.jl")
 
 end # module
