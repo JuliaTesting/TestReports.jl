@@ -136,7 +136,8 @@ function gen_runner_code(testfilename, logfilename, test_args)
             include($(repr(testfilename)))
         end
 
-        write($(repr(logfilename)), report(ts))
+        # Flatten before calling `report` to avoid a `deepcopy`.
+        write($(repr(logfilename)), report(TestReports.flatten_results!(ts)))
         any_problems(ts) && exit(TestReports.TESTS_FAILED)
         """
     return runner_code

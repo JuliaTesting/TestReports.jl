@@ -12,7 +12,8 @@ ts = @testset ReportingTestSet "" begin
 end
 
 open("testlog.xml","w") do fh
-    print(fh, report(ts))
+    # Flatten before calling `report` to avoid a `deepcopy`.
+    print(fh, report(TestReports.flatten_results!(ts)))
 end
 exit(any_problems(ts))
 """
