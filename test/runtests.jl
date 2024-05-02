@@ -16,4 +16,5 @@ include("utils.jl")
     @testset "report generation" begin include("reportgeneration.jl") end
     @testset "runner internals" begin include("runnerinternals.jl") end
     @testset "to_xml" begin include("to_xml.jl") end
+    @testset "reporttests script" begin include("reporttests_script.jl") end
 end
