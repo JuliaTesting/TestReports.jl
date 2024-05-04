@@ -17,6 +17,7 @@ using Base.Threads
         @test true
 
         @testset "Inner" begin
+            recordproperty("ID", 3)
             recordproperty("AdditionalNest", true)
         end
     end

@@ -22,6 +22,17 @@ end
     @test_reference test_file read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> clean_output
 end
 
+@testset "TestsWithProperties" begin
+    pkg = "TestsWithProperties"
+    temp_pkg_dir() do tmp
+        Pkg.develop(Pkg.PackageSpec(path=test_package_path(pkg)))
+        TestReports.test(pkg)
+    end
+    logfile = joinpath(@__DIR__, "testlog.xml")
+    test_file = VERSION >= v"1.7.0" ? "references/test_with_properties.txt" : "references/test_with_properties_pre_1_7.txt"
+    @test_reference test_file read(logfile, String) |> clean_output
+end
+
 @testset "Runner tests" begin
     @testset "Installed packages by name in primary environment" begin
         # For speed avoid updating registry, we have a fresh one anyway

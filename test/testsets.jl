@@ -1,3 +1,9 @@
+@testset "recordproperty!" begin
+    ts = @testset ReportingTestSet begin end
+    @test TestReports.recordproperty!(ts, "id", 1) === ts
+    @test TestReports.properties(ts) == ["id" => 1]
+end
+
 @testset "flatten_results!" begin
     # Simple top level results
     ts = @testset TestReportingTestSet "Top-Level" begin

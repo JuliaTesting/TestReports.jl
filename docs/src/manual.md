@@ -98,9 +98,9 @@ The added properties will be added to the corresponding testsuite in the generat
 Multiple properties can be added, and a property added to a parent `TestSet` will be applied
 to all child `TestSet`s.
 
-An error will be thrown if the same property is set twice in a `TestSet`, and a warning
-displayed if both parent and child `TestSet` have the same property set (in which case
-the value set in the child will take be used in the report).
+Properties with the same name are allowed to be set multiple times within the same
+`TestSet`. If both a parent and a child set the same named property both properties will
+appear in the child when generating the report.
 
 The property name must always be a `String`, but the value can be anything that is serializable
 by `EzXML.jl`. In practice this means that `String`s, `Number`s, `Expr`s and `Symbols` can be used,
@@ -120,13 +120,13 @@ using TestReports
         recordproperty("TestSubject", "Example")
 
         @testset "Inner" begin
-            recordproperty("Testsuite", 101)  # This will overwrite parent testset value
-            @test 1==1
+            recordproperty("Testsuite", 101)  # Both testsuite 100 and 101 apply to this testset
+            @test 1 == 1
         end
 
         @testset "Types" begin
             recordproperty("Prop1", :Val1)
-            @test 1==1
+            @test 1 == 1
         end
     end
 end
