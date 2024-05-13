@@ -9,7 +9,8 @@ reference_suffix = VERSION >= v"1.7" ? "" : "_pre_1_7"
 
 @testset "parse_args" begin
     include(script_runner)
-    @test_throws ArgumentError parse_args([])
+    @test parse_args([]) === nothing  # Shows help
+    @test_throws ArgumentError parse_args(["--"])
 
     parsed = parse_args(split("script.jl"))
     @test parsed.test_filename == "script.jl"

@@ -8,6 +8,7 @@ using TestReports
 
 # Basic argument parsing without requring an extra dependency like ArgParse.jl
 function parse_args(args)
+    help_flag = false
     test_filename = nothing
     output_filename = nothing
     test_args = String[]
@@ -30,14 +31,8 @@ function parse_args(args)
                 option_key = "--output"
             end
         elseif state === :options && option_match(("--help", "-h"), arg)
-            println(stderr, """
-                Generate a JUnit test report from running Julia tests.
-
-                Usage:
-                  reporttests.jl TEST_FILENAME [--output=LOG_FILENAME] -- [test_args...]
-                  julia reporttests.jl -- TEST_FILENAME [--output=LOG_FILENAME] -- [test_args...]
-                """)
-            return nothing
+            help_flag = true
+            break
         elseif state === :options && arg == "--"
             # Ignore the first double-dash as Julia versions before 1.9.0-DEV.604 would
             # automatically exclude it.
@@ -48,6 +43,17 @@ function parse_args(args)
         else
             push!(test_args, arg)
         end
+    end
+
+    if help_flag || isempty(args)
+        println(stderr, """
+            Generate a JUnit test report from running Julia tests.
+
+            Usage:
+              reporttests.jl TEST_FILENAME [--output=LOG_FILENAME] -- [test_args...]
+              julia reporttests.jl -- TEST_FILENAME [--output=LOG_FILENAME] -- [test_args...]
+            """)
+        return nothing
     end
 
     if test_filename === nothing
