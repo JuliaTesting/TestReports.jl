@@ -29,6 +29,15 @@ function parse_args(args)
             else
                 option_key = "--output"
             end
+        elseif state === :options && option_match(("--help", "-h"), arg)
+            println(stderr, """
+                Generate a JUnit test report from running Julia tests.
+
+                Usage:
+                  reporttests.jl TEST_FILENAME [--output=LOG_FILENAME] -- [test_args...]
+                  julia reporttests.jl -- TEST_FILENAME [--output=LOG_FILENAME] -- [test_args...]
+                """)
+            return nothing
         elseif state === :options && arg == "--"
             # Ignore the first double-dash as Julia versions before 1.9.0-DEV.604 would
             # automatically exclude it.
@@ -55,6 +64,7 @@ end
 
 if abspath(PROGRAM_FILE) == @__FILE__()
     parsed = parse_args(ARGS)
+    parsed === nothing && exit(1)
     coverage = Base.JLOptions().code_coverage != 0
     runner_code = TestReports.gen_runner_code(
         parsed.test_filename,

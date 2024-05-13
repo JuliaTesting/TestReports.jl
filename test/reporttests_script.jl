@@ -37,6 +37,11 @@ reference_suffix = VERSION >= v"1.7" ? "" : "_pre_1_7"
 
     parsed = parse_args(split("-- script.jl foo bar -- -o baz"))
     @test parsed.test_args == String["foo", "bar", "-o", "baz"]
+
+    @testset "$help" for help in ("--help", "-h")
+        parsed = parse_args([help])
+        @test parsed === nothing
+    end
 end
 
 @testset "executable" begin
