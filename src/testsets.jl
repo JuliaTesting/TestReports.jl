@@ -116,7 +116,7 @@ end
     properties(ts::AbstractTestSet) -> Union{Vector{Pair{String, Any}}, Nothing}
 
 Get the properties of a `ReportingTestSet`. Can be extended for custom testsets.
-Returns `nothing` for an `AbstractTestSet`.
+Defaults to `nothing` for an `AbstractTestSet`.
 
 See also: [`recordproperty`](@ref) and [`recordproperty!`](@ref).
 """
