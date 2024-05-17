@@ -56,8 +56,7 @@ and this is not recommended or supported.
 A `ReportingTestSet` has the `description` and `results` fields as per a
 `DefaultTestSet`, and has the following additional fields:
 
-- `properties`: a dictionary which is used to record properties to be
-    inserted into the report.
+- `properties`: used to record testsuite properties to be inserted into the report.
 - `start_time::DateTime`: the start date and time of the testing (local system time).
 - `time_taken::Millisecond`: the time taken in milliseconds to run the `TestSet`.
 - `last_record_time::DateTime`: the time when `record` was last called.
@@ -68,7 +67,7 @@ See also: [`flatten_results!`](@ref), [`recordproperty`](@ref), [`report`](@ref)
 mutable struct ReportingTestSet <: AbstractTestSet
     description::String
     results::Vector
-    properties::Dict{String, Any}
+    properties::Vector{Pair{String, Any}}
     start_time::DateTime
     time_taken::Millisecond
     last_record_time::DateTime
@@ -77,7 +76,8 @@ mutable struct ReportingTestSet <: AbstractTestSet
     showtiming::Bool
 end
 
-ReportingTestSet(desc; verbose=false, showtiming=true) = ReportingTestSet(desc, [], Dict(), now(), Millisecond(0), now(), gethostname(), verbose, showtiming)
+ReportingTestSet(desc; verbose=false, showtiming=true) = ReportingTestSet(desc, [], [], now(), Millisecond(0), now(), gethostname(), verbose, showtiming)
+
 function record(ts::ReportingTestSet, t::Result)
     push!(ts.results, ReportingResult(t, now()-ts.last_record_time))
     ts.last_record_time = now()
@@ -111,16 +111,31 @@ end
 #################################
 # Accessing and setting methods #
 #################################
-"""
-    properties(ts::ReportingTestSet)
-    properties(ts::AbstractTestSet)
 
-Get the properties dictionary of a `ReportingTestSet`, returns
-nothing for an `AbstractTestSet`. Can be extended for custom
-`TestSet`s, and must return either a `Dict` or `nothing`.
 """
+    properties(ts::AbstractTestSet) -> Union{Vector{Pair{String, Any}}, Nothing}
+
+Get the properties of a `ReportingTestSet`. Can be extended for custom testsets.
+Defaults to `nothing` for an `AbstractTestSet`.
+
+See also: [`recordproperty`](@ref) and [`recordproperty!`](@ref).
+"""
+properties(::AbstractTestSet) = nothing
 properties(ts::ReportingTestSet) = ts.properties
-properties(ts::AbstractTestSet) = nothing
+
+"""
+    recordproperty!(ts::AbstractTestSet, name::AbstractString, value)
+
+Associate a property with the testset. Can be extended for custom testsets.
+
+See also: [`properties`](@ref).
+"""
+recordproperty!(ts::AbstractTestSet, name::AbstractString, value) = ts
+
+function recordproperty!(ts::ReportingTestSet, name::AbstractString, value)
+    push!(ts.properties, name => value)
+    return ts
+end
 
 """
     start_time(ts::ReportingTestSet)
@@ -275,36 +290,32 @@ _flatten_results!(rs::Result, depth::Int) = [rs]
 """
     update_testset_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
 
-Adds properties of `ts` to `childts`. If any properties being added already exist in
-`childts`, a warning is displayed and the value in `ts` is overwritten.
+Adds properties of `ts` to `childts`.
 
-If the types of `ts` and\\or `childts` do not a method defined for `TestReports.properties`,
-this is handled as follows:
+If the types of `ts` and/or `childts` do not a method defined for properties, this is
+handled as follows:
+
 - If method not defined for `typeof(ts)`, it has no properties to add to `childts`
-    and therefore nothing happens.
-- If method not defined for `typeof(chidlts)` and `ts` has properties, then a warning
-    is shown.
+  and therefore nothing happens.
+- If method not defined for `typeof(childts)` and `ts` has properties, then a warning is
+  shown.
 
-See also: [`properties`](@ref)
+See also: [`properties`](@ref).
 """
 function update_testset_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
     child_props = properties(childts)
     parent_props = properties(ts)
 
-    if isnothing(child_props) && !isnothing(parent_props) && !isempty(parent_props)
-        @warn "Properties of testset $(ts.description) can not be added to child testset $(childts.description) as it does not have a TestReports.properties method defined."
-        # No need to check if childts is has properties defined and ts doesn't as if this is the case
-        # ts has no properties to add to that of childts.
-    elseif !isnothing(child_props) && !isnothing(parent_props)
-        parent_keys = keys(parent_props)
-        child_keys = keys(child_props)
-        # Loop through keys so that warnings can be issued for any duplicates
-        for key in parent_keys
-            if key in child_keys
-                @warn "Property $key in testest $(ts.description) overwritten by child testset $(childts.description)"
-            else
-                child_props[key] = parent_props[key]
-            end
+    # Children inherit the properties of their parents
+    if !isnothing(parent_props) && !isempty(parent_props)
+        if !isnothing(child_props)
+            prepend!(child_props, parent_props)
+        else
+            @warn(
+                "Properties of testset \"$(ts.description)\" can not be added to " *
+                "child testset \"$(childts.description)\" as it does not have a " *
+                "`TestReports.properties` method defined."
+            )
         end
     end
     return childts

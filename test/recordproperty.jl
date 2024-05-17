@@ -1,103 +1,75 @@
-@testset "recordproperty" begin
-    @testset "Property recording" begin
-        # Test for blanks in properties if nothing given 
-        ts = @testset ReportingTestSet "" begin end
-        @test length(keys(ts.properties)) == 0
+@testset "recordproperty / properties" begin
+    using TestReports: properties
 
-        # Test property with different types updated in testset
-        ts = @testset ReportingTestSet "" begin recordproperty("ID", "1") end
-        @test ts.properties["ID"] == "1"
-        ts = @testset ReportingTestSet "" begin recordproperty("ID", 1) end
-        @test ts.properties["ID"] == 1
+    @testset "empty" begin
+        ts = @testset ReportingTestSet begin end
+        @test properties(ts) isa AbstractVector
+        @test length(properties(ts)) == 0
 
-        # Test nested testset
-        ts = @testset ReportingTestSet "" begin
-            recordproperty("ID", "TopLevel")
-            @testset begin
-                recordproperty("Prop", "Inner 1")
-            end
-            @testset begin
-                recordproperty("Prop", "Inner 2")
-            end
-        end
-        @test ts.properties["ID"] == "TopLevel"
-        @test ts.results[1].properties["Prop"] == "Inner 1"
-        @test ts.results[2].properties["Prop"] == "Inner 2"
+        ts = @testset "_" begin end
+        @test properties(ts) === nothing
     end
 
-    # Test properties in report
-    @testset "Report generation" begin
-        # Check properties in XML doc variable
-        ts = @testset ReportingTestSet "MimicRunner" begin
-            @testset "TopLevel" begin
-                recordproperty("ID", "TopLevel")
-                @testset begin
-                    recordproperty("Prop", "Inner 1")
-                end
-                @testset begin
-                    recordproperty("Prop", "Inner 2")
-                end
-            end
+    @testset "record property" begin
+        ts = @testset ReportingTestSet begin
+            recordproperty("tested-item-id", "SAMD-45")
         end
-        ts = TestReports.flatten_results!(ts)  # Force flattening, as "finish" sees that ts is not top level
-        rep = report(ts)
-        properties_nodes = lastnode.(elements(root(rep)))
+        @test properties(ts) == ["tested-item-id" => "SAMD-45"]
 
-        # Child properties are first in report
-        @test length(elements(properties_nodes[1])) == 1
-        @test elements(properties_nodes[1])[1]["name"] == "ID"
-        @test elements(properties_nodes[1])[1]["value"] == "TopLevel"
-
-        @test length(elements(properties_nodes[2])) == 2
-        @test elements(properties_nodes[2])[1]["name"] == "Prop"
-        @test elements(properties_nodes[2])[1]["value"] == "Inner 1"
-        @test elements(properties_nodes[2])[2]["name"] == "ID"
-        @test elements(properties_nodes[2])[2]["value"] == "TopLevel"
-
-        @test length(elements(properties_nodes[3])) == 2
-        @test elements(properties_nodes[3])[1]["name"] == "Prop"
-        @test elements(properties_nodes[3])[1]["value"] == "Inner 2"
-        @test elements(properties_nodes[3])[2]["name"] == "ID"
-        @test elements(properties_nodes[3])[2]["value"] == "TopLevel"
-
-        # Test full packaage
-        pkg = "TestsWithProperties"
-        temp_pkg_dir() do tmp
-            Pkg.develop(Pkg.PackageSpec(path=test_package_path(pkg)))
-            TestReports.test(pkg)
+        ts = @testset ReportingTestSet begin
+            recordproperty("count", 3)
         end
-        logfile = joinpath(@__DIR__, "testlog.xml")
-        test_file = VERSION >= v"1.7.0" ? "references/test_with_properties.txt" : "references/test_with_properties_pre_1_7.txt"
-        @test_reference test_file open(f->read(f, String), logfile) |> clean_output
+        @test properties(ts) == ["count" => 3]
     end
 
-    # Test for warning when ID set twice
-    @testset "warnings & errors" begin
+    @testset "multiple properties" begin
+        ts = @testset ReportingTestSet begin
+            recordproperty("tests", "ABC-789")
+            recordproperty("tests", "ABC-1011")
+        end
+        @test properties(ts) == ["tests" => "ABC-789", "tests" => "ABC-1011"]
 
-        # Test error in testset when setting duplicate property name
-        ts = @testset ReportingTestSet "" begin
-            @testset ReportingTestSet "Parent" begin
-                recordproperty("ID", "42")
-                recordproperty("ID", "42")
+        ts = @testset ReportingTestSet begin
+            recordproperty("tests", "ABC-789")
+            recordproperty("tests", "ABC-789")
+        end
+        @test properties(ts) == ["tests" => "ABC-789", "tests" => "ABC-789"]
+    end
+
+    @testset "nested properties" begin
+        ts = @testset ReportingTestSet begin
+            recordproperty("tests", "ABC-789")
+            @testset begin
+                recordproperty("tests", "ABC-1011")
             end
         end
-        @test ts.results[1].results[1] isa TestReports.ReportingResult{Error}
+        @test properties(ts) == ["tests" => "ABC-789"]
+        @test properties(ts.results[1]) == ["tests" => "ABC-1011"]
 
-        # Test warning (when finishing ts) for parent ID being overwritten by child
-        ts = @testset ReportingTestSet "" begin
-            @testset ReportingTestSet "Outer" begin
-                recordproperty("ID", "42")
-                @testset ReportingTestSet "Inner" begin
-                    recordproperty("ID", "0")
-                end
-            end
-        end
-        # Force flattening as ts doesn't finish fully as it is not the top level testset
-        overwrite_text = "Property ID in testest Outer overwritten by child testset Inner"
-        flattened_testsets = @test_logs (:warn, overwrite_text) TestReports.flatten_results!(ts)
+        flattened_testsets = TestReports.flatten_results!(ts)
         @test length(flattened_testsets) == 2
-        @test flattened_testsets[2].properties["ID"] == "0"
+        @test properties(flattened_testsets[1]) == ["tests" => "ABC-789"]
+        @test properties(flattened_testsets[2]) == ["tests" => "ABC-789", "tests" => "ABC-1011"]
 
+        ts = @testset ReportingTestSet begin
+            recordproperty("tests", "ABC-789")
+            @testset begin
+                recordproperty("tests", "ABC-789")
+            end
+            @testset begin
+            end
+        end
+        @test properties(ts) == ["tests" => "ABC-789"]
+        @test properties(ts.results[1]) == ["tests" => "ABC-789"]
+        @test properties(ts.results[2]) == []
+
+        flattened_testsets = TestReports.flatten_results!(ts)
+        @test length(flattened_testsets) == 2
+        @test properties(flattened_testsets[1]) == ["tests" => "ABC-789"]
+        @test properties(flattened_testsets[2]) == ["tests" => "ABC-789", "tests" => "ABC-789"]
+    end
+
+    @testset "custom testset support" begin
         # Test for parent testset properties not being applied to child due to different type
         ts = @testset ReportingTestSet "" begin
             @testset ReportingTestSet "Outer" begin
@@ -107,9 +79,11 @@
                 end
             end
         end
-        # Force flattening as ts doesn't finish fully as it is not the top level testset
-        fail_text = r"Properties of testset Outer can not be added to child testset Inner as it does not have a TestReports.properties method defined."
-        @test_logs (:warn, fail_text) TestReports.flatten_results!(ts)
+        fail_text = "Properties of testset \"Outer\" can not be added to child testset \"Inner\" as it does not have a `TestReports.properties` method defined."
+        flattened_testsets = @test_logs (:warn, fail_text) TestReports.flatten_results!(ts)
+        @test length(flattened_testsets) == 2
+        @test properties(flattened_testsets[1]) == ["ID" => "42"]
+        @test properties(flattened_testsets[2]) === nothing
 
         # Test for ReportingTestSet setting a property inside of a parent custom testset
         ts = @testset ReportingTestSet "TestReports Wrapper" begin
@@ -120,18 +94,51 @@
                 end
             end
         end
-        # Force flattening as ts doesn't finish fully as it is not the top level testset
         flattened_testsets = TestReports.flatten_results!(ts)
         @test length(flattened_testsets) == 1
-        @test flattened_testsets[1].properties["ID"] == "42"
-
-        # Error if attempting to add property to AbstractTestSet which has properties field with wrong type
-        ts = @testset WrongPropsTestSet begin; recordproperty("id",1); end
-        @test eval(Meta.parse(ts.results[1].value)) isa TestReports.PkgTestError
-        @test occursin("properties method for custom testset must return a dictionary", eval(Meta.parse(ts.results[1].value)).msg)
+        @test properties(flattened_testsets[1]) == ["ID" => "42"]
     end
 
-    @testset "Check no interference with default test set" begin
-        recordproperty("Nothing", "WillHappen")
+    @testset "ignore properties on unsupported test sets" begin
+        ts = @testset begin
+            recordproperty("id", 1)
+        end
+        @test properties(ts) === nothing
+    end
+
+    @testset "junit report" begin
+        # Check properties in XML doc variable
+        ts = @testset ReportingTestSet "TopLevel" begin
+            recordproperty("ID", "TopLevel")
+            @testset begin
+                recordproperty("Prop", "Inner 1")
+            end
+            @testset begin
+                recordproperty("Prop", "Inner 2")
+            end
+        end
+        rep = report(ts)
+        testsuite_elements = findall("//testsuite", root(rep))
+        @test length(testsuite_elements) == 3
+
+        # Child properties are first in report
+        testsuite_property_elements = findall("properties/property", testsuite_elements[1])
+        @test length(testsuite_property_elements) == 1
+        @test testsuite_property_elements[1]["name"] == "ID"
+        @test testsuite_property_elements[1]["value"] == "TopLevel"
+
+        testsuite_property_elements = findall("properties/property", testsuite_elements[2])
+        @test length(testsuite_property_elements) == 2
+        @test testsuite_property_elements[1]["name"] == "ID"
+        @test testsuite_property_elements[1]["value"] == "TopLevel"
+        @test testsuite_property_elements[2]["name"] == "Prop"
+        @test testsuite_property_elements[2]["value"] == "Inner 1"
+
+        testsuite_property_elements = findall("properties/property", testsuite_elements[3])
+        @test length(testsuite_property_elements) == 2
+        @test testsuite_property_elements[1]["name"] == "ID"
+        @test testsuite_property_elements[1]["value"] == "TopLevel"
+        @test testsuite_property_elements[2]["name"] == "Prop"
+        @test testsuite_property_elements[2]["value"] == "Inner 2"
     end
 end

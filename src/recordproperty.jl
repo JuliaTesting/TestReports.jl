@@ -1,26 +1,27 @@
 """
-    recordproperty(name::String, value)
+    recordproperty(name::AbstractString, value)
 
-Adds a property to a testset with `name` and `value` that will in turn be added
-to the `<properties>` node of the corresponding testsuite in the JUnit XML.
+Associates a property with a testset. The `name` and `value` will be turned into a
+`<property>` element within the corresponding `<testsuite>` element within the JUnit XML
+report.
 
-Multiple properties can be added to one testset, but if the same property is set on
-both parent and child testsets, the value in the child testset takes precedence over
-that in the parent.
+Multiple properties can be added to one testset and child testsets inherit the properties
+defined by their parents. If a child testset records a property which is already set both
+will be present in the resulting report.
 
 The suggested use of this function is to place it inside a testset with unspecified type
 (see Examples). This will ensure that `Pkg.test` is unnaffected, but that the properties
 are added to the report when `TestReports.test` is used. This is because properties are
 only added when the `Testset` type has a `TestReports.properties` method defined, as does
-the `ReportingTestSet` used by `TestReports`. `TestReports.properties` can be extended
-for custom `TestSet`s.
+the `ReportingTestSet` used by `TestReports`. `TestReports.properties` can be extended for
+custom `TestSet`s.
 
 If a child testset has this method defined but its parent doesn't, the property should
 be in the report when `TestReport.test` is used, assuming that the parent testset
-type doesn't do anything to affect the reporting behaviour. However this is not tested
+type doesn't do anything to affect the reporting behavior. However this is not tested
 functionality.
 
-`value` must be serializable by EzXML, which gives quite a lot of freedom.
+The `value` argument must be serializable by EzXML, which gives quite a lot of freedom.
 
 # Examples
 ```julia
@@ -32,22 +33,14 @@ using TestReports
     recordproperty("ID", 42)
     recordproperty("File", @__FILE__)
     recordproperty("Bool", true)
-    @test 1==1
-    @test 2==2
+    @test 1 == 1
+    @test 2 == 2
 end
 ```
 
-See also: [`properties`](@ref)
+See also: [`properties`](@ref) and [`recordproperty!](@ref).
 """
-function recordproperty(name::String, val)
-    properties_dict = properties(get_testset())
-    if !isnothing(properties_dict)
-        !isa(properties_dict, AbstractDict) && throw(PkgTestError("TestReports.properties method for custom testset must return a dictionary."))
-        if haskey(properties_dict, name)
-            throw(PkgTestError("Property $name already set and can't be set again in the same testset"))
-        else
-            get_testset().properties["$name"] = val
-        end
-    end
-    return
+function recordproperty(name::AbstractString, value)
+    recordproperty!(get_testset(), name, value)
+    return value
 end
