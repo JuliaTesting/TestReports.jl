@@ -18,7 +18,7 @@ test_script = "reporttests_testsets.jl"
 reference_suffix = VERSION >= v"1.7" ? "" : "_pre_1_7"
 
 @testset "parse_args" begin
-    include(TestReports.SCRIPT)
+    include(TestReports.RUNNER_FILE)
     @test parse_args([]) === nothing  # Shows help
     @test_throws ArgumentError parse_args(["--"])
 
