@@ -25,7 +25,7 @@ default_hostname_info(str) = replace(str, r"\shostname=\\\"[\S]*\\\"" => " hostn
 
 pretty_format_xml(str) = sprint(prettyprint, parsexml(str))
 
-const clean_output = pretty_format_xml ∘ strip_filepaths ∘ remove_stacktraces ∘ remove_test_output ∘ remove_timing_info ∘ remove_timestamp_info ∘ default_hostname_info
+const clean_output = strip_filepaths ∘ remove_stacktraces ∘ remove_test_output ∘ remove_timing_info ∘ remove_timestamp_info ∘ default_hostname_info
 
 test_package_path(pkg) = joinpath(@__DIR__, "test_packages", pkg)
 
