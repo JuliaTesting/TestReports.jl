@@ -1,7 +1,7 @@
 """
     record_testset_property(name::AbstractString, value)
 
-Associates a property with a testset. The `name` and `value` will be turned into a
+Associates a property with the current testset. The `name` and `value` will be turned into a
 `<property>` element within the corresponding `<testsuite>` element within the JUnit XML
 report.
 
@@ -23,22 +23,43 @@ functionality.
 
 The `value` argument must be serializable by EzXML, which gives quite a lot of freedom.
 
-# Examples
+## Examples
+
+Using the default testset for compatiblity with `Pkg.test` and `TestReports.test`:
+
 ```julia
 using TestReports
 
-# Default testset used, so function will not affect Pkg.test but will be used when
-# generating JUnit XML.
+# Default testset used, record property calls are ignored by `Pkg.test` but will be used
+# when generating JUnit XML.
 @testset "MyTestSet" begin
     record_testset_property("ID", 42)
-    record_testset_property("File", @__FILE__)
-    record_testset_property("Bool", true)
+    record_test_property("Bool", true)
     @test 1 == 1
     @test 2 == 2
 end
 ```
 
-See also: [`testset_properties`](@ref), [`record_test_property`](@ref).
+Rendering JUnit reports on the REPL:
+
+```julia
+using Test, TestReports, EzXML
+
+ts = @testset ReportingTestSet "Root" begin  # `<testsuite name="Root">` has property "foo"
+    record_testset_property("foo", 1)
+    record_test_property("bar", 2)
+
+    @testset "Inner" begin  # `<testsuite name="Root/Inner">` has property "foo"
+        @test 1 == 1  # `<testcase>` has the property "bar"
+    end
+
+    @test 2 != 1  # `<testcase>` has the property "bar"
+end;
+
+prettyprint(report(ts))
+```
+
+See also: [`record_test_property`](@ref) and [`testset_properties`](@ref).
 """
 function record_testset_property(name::AbstractString, value)
     record_testset_property!(get_testset(), name, value)
@@ -56,24 +77,9 @@ Multiple test properties can be assigned within a testset and child testsets wil
 the test properties defined by their parents. If a child testset records a test property
 with an already used name both properties will be present in the resulting report.
 
-For more details see the documentation for [`record_testset_property`](@ref).
+For more details and examples see the documentation for [`record_testset_property`](@ref).
 
-# Examples
-```julia
-using TestReports
-
-# Default testset used, record property call is ignored by `Pkg.test` but will be used when
-# generating JUnit XML.
-@testset "MyTestSet" begin
-    record_test_property("ID", 42)
-    record_test_property("File", @__FILE__)
-    record_test_property("Bool", true)
-    @test 1 == 1
-    @test 2 == 2
-end
-```
-
-See also: [`test_properties`](@ref), [`record_testset_property`](@ref).
+See also: [`record_testset_property`](@ref) and [`test_properties`](@ref).
 """
 function record_test_property(name::AbstractString, value)
     record_test_property!(get_testset(), name, value)
