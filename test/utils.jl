@@ -23,6 +23,8 @@ remove_timestamp_info(str) = replace(str, r"\stimestamp=\\\"[0-9-T:.]*\\\"" => "
 # Default hostname output - we want "hostname" there to check its being recorded
 default_hostname_info(str) = replace(str, r"\shostname=\\\"[\S]*\\\"" => " hostname=\"localhost\"")
 
+pretty_format_xml(str) = sprint(prettyprint, parsexml(str))
+
 const clean_output = strip_filepaths ∘ remove_stacktraces ∘ remove_test_output ∘ remove_timing_info ∘ remove_timestamp_info ∘ default_hostname_info
 
 test_package_path(pkg) = joinpath(@__DIR__, "test_packages", pkg)

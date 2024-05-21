@@ -129,6 +129,7 @@ function gen_runner_code(testfilename, logfilename, test_args)
 
         using Test
         using TestReports
+        using TestReports.EzXML: prettyprint
 
         append!(empty!(ARGS), $(repr(test_args.exec)))
 
@@ -137,7 +138,9 @@ function gen_runner_code(testfilename, logfilename, test_args)
         end
 
         # Flatten before calling `report` to avoid a `deepcopy`.
-        write($(repr(logfilename)), report(TestReports.flatten_results!(ts)))
+        open($(repr(logfilename)), "w") do io
+            prettyprint(io, report(TestReports.flatten_results!(ts)))
+        end
         any_problems(ts) && exit(TestReports.TESTS_FAILED)
         """
     return runner_code
