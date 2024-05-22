@@ -82,7 +82,9 @@ if abspath(PROGRAM_FILE) == @__FILE__()
     try
         run(cmd)
     catch e
-        e isa ProcessFailedException && exit(only(e.procs).exitcode)
+        if e isa ProcessFailedException && length(e.procs) == 1
+            exit(e.procs[1].exitcode)
+        end
         rethrow()
     end
 end
