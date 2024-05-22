@@ -394,9 +394,9 @@ function test!(pkg::AbstractString,
                 nothing
             end
 
-            sandbox_args = if VERSION >= v"1.11.0-"
+            sandbox_args = if VERSION >= v"1.11-"
                 (ctx, pkgspec, joinpath(pkgspec.path, "test"), test_project_override)
-            elseif VERSION >= v"1.4.0"
+            elseif VERSION >= v"1.4"
                 (ctx, pkgspec, pkgspec.path, joinpath(pkgspec.path, "test"), test_project_override)
             else
                 (ctx, pkgspec, pkgspec.path, joinpath(pkgspec.path, "test"))
