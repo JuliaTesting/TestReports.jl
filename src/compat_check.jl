@@ -14,13 +14,13 @@ compatible(current::VersionNumber, desired::Pkg.Types.VersionSpec) = current in 
 end
 
 """
-    check_project(project::Nothing, args...)
+    check_project(project::Nothing, pkg, loc)
     check_project(project, pkg, loc)
 
 Error if `project` has a version of TestReports which is incompatible with
 this version of TestReports.
 """
-check_project(project::Nothing, args...) = nothing
+check_project(project::Nothing, pkg, loc) = nothing
 function check_project(project, pkg, loc)
     if hascompat(project) && haskey(getcompat(project), "TestReports")
         project_testreports_compat = getcompat(project)["TestReports"]
