@@ -30,13 +30,9 @@ jobs:
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
-        continue-on-error: ${{ matrix.version == 'nightly' }}
       - uses: julia-actions/julia-runtest@v1
-        continue-on-error: ${{ matrix.version == 'nightly' }}
       - uses: julia-actions/julia-processcoverage@v1
-        continue-on-error: ${{ matrix.version == 'nightly' }}
       - uses: codecov/codecov-action@v4
-        continue-on-error: ${{ matrix.version == 'nightly' }}
         with:
           files: lcov.info
   docs:
