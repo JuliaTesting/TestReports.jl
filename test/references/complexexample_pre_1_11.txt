@@ -67,8 +67,7 @@
   Expression: throw(ArgumentError("1"))
     Expected: DimensionMismatch
       Thrown: ArgumentError
-      ArgumentError: 1
-      </failure>
+</failure>
     </testcase>
     <testcase name="true" id="2" classname="Math/Different failures" time="0.0">
       <failure message="No exception thrown" type="test_throws_nothing">Test Failed

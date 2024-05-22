@@ -393,27 +393,26 @@ function test!(pkg::AbstractString,
         cmd = gen_command(runner_code, julia_args, coverage)
         test_folder_has_project_file = has_test_project_file(testfilepath)
 
-        if VERSION >= v"1.4.0" || (VERSION >= v"1.2.0" && test_folder_has_project_file)
+        if VERSION >= v"1.4" || (VERSION >= v"1.2" && test_folder_has_project_file)
             # Operations.sandbox() has different arguments between versions
-            sandbox_args = (ctx,
-                            pkgspec,
-                            pkgspec.path,
-                            joinpath(pkgspec.path, "test"))
-            if VERSION >= v"1.8.0"
-                test_project_override = test_folder_has_project_file ?
-                    nothing :
+            test_project_override = if VERSION >= v"1.4" && !test_folder_has_project_file
+                if VERSION >= v"1.8"
                     gen_target_project(ctx, pkgspec, pkgspec.path::String, "test")
-                sandbox_args = (sandbox_args..., test_project_override)
-            elseif VERSION >= v"1.7.0"
-                test_project_override = test_folder_has_project_file ?
-                    nothing :
+                elseif VERSION >= v"1.7"
                     gen_target_project(ctx.env, ctx.registries, pkgspec, pkgspec.path, "test")
-                sandbox_args = (sandbox_args..., test_project_override)
-            elseif VERSION >= v"1.4.0"
-                test_project_override = test_folder_has_project_file ?
-                    nothing :
+                else
                     gen_target_project(ctx, pkgspec, pkgspec.path, "test")
-                sandbox_args = (sandbox_args..., test_project_override)
+                end
+            else
+                nothing
+            end
+
+            sandbox_args = if VERSION >= v"1.11-"
+                (ctx, pkgspec, joinpath(pkgspec.path, "test"), test_project_override)
+            elseif VERSION >= v"1.4"
+                (ctx, pkgspec, pkgspec.path, joinpath(pkgspec.path, "test"), test_project_override)
+            else
+                (ctx, pkgspec, pkgspec.path, joinpath(pkgspec.path, "test"))
             end
 
             sandbox(sandbox_args...) do

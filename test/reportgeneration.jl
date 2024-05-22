@@ -12,8 +12,10 @@ const TEST_PKG = (name = "Example", uuid = UUID("7876af07-990d-54b4-ab0e-2369062
 end
 
 @testset "Complex Example" begin
-    test_file = if VERSION >= v"1.9.0-beta4.29"  # https://github.com/JuliaLang/julia/pull/48526
+    test_file = if VERSION >= v"1.11-"
         "references/complexexample.txt"
+    elseif VERSION >= v"1.9.0-beta4.29"  # https://github.com/JuliaLang/julia/pull/48526
+        "references/complexexample_pre_1_11.txt"
     elseif VERSION >= v"1.7.0"
         "references/complexexample_pre_1_9.txt"
     else

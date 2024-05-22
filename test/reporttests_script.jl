@@ -15,7 +15,20 @@ else
     `$(TestReports.RUNNER_SCRIPT)`
 end
 test_script = "reporttests_testsets.jl"
-reference_suffix = VERSION >= v"1.7" ? "" : "_pre_1_7"
+
+reference_file_pass = if VERSION >= v"1.7"
+    "references/reporttests_pass.xml"
+else
+    "references/reporttests_pass_pre_1_7.xml"
+end
+
+reference_file_fail = if VERSION >= v"1.9"
+    "references/reporttests_fail.xml"
+elseif VERSION >= v"1.7"
+    "references/reporttests_fail_pre_1_9.xml"
+else
+    "references/reporttests_fail_pre_1_7.xml"
+end
 
 @testset "parse_args" begin
     include(TestReports.RUNNER_SCRIPT)
@@ -61,39 +74,36 @@ end
 end
 
 @testset "default output file" begin
-    reference_file = "references/reporttests_pass$reference_suffix.xml"
     output_file = "testlog.xml"
     p = run(ignorestatus(`$runner_cmd $test_script`))
     try
         @test success(p)
         @test isfile(output_file)
-        @test_reference reference_file read(output_file, String) |> clean_output
+        @test_reference reference_file_pass read(output_file, String) |> clean_output
     finally
         isfile(output_file) && rm(output_file)
     end
 end
 
 @testset "specify output file" begin
-    reference_file = "references/reporttests_pass$reference_suffix.xml"
     output_file = "junit-report.xml"
     p = run(ignorestatus(`$runner_cmd $test_script --output=$output_file`))
     try
         @test success(p)
         @test isfile(output_file)
-        @test_reference reference_file read(output_file, String) |> clean_output
+        @test_reference reference_file_pass read(output_file, String) |> clean_output
     finally
         isfile(output_file) && rm(output_file)
     end
 end
 
 @testset "test args" begin
-    reference_file = "references/reporttests_fail$reference_suffix.xml"
     output_file = "testlog.xml"
     p = run(ignorestatus(`$runner_cmd $test_script -- foo -e bar`))
     try
         @test !success(p)
         @test isfile(output_file)
-        @test_reference reference_file read(output_file, String) |> clean_output
+        @test_reference reference_file_fail read(output_file, String) |> clean_output
     finally
         isfile(output_file) && rm(output_file)
     end
