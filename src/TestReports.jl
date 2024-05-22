@@ -16,9 +16,6 @@ using Test: AbstractTestSet, DefaultTestSet, Result, Pass, Fail, Error, Broken,
 
 import Test: finish, record
 
-# Defined for use by users of this package
-const RUNNER_FILE = abspath(joinpath(@__DIR__(), "..", "bin", "reporttests.jl"))
-
 # Version specific imports
 @static if VERSION >= v"1.4.0"
     using Pkg.Operations: gen_target_project

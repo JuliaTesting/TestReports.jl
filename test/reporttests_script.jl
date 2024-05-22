@@ -1,24 +1,24 @@
-@testset "runner file" begin
-    @test isdefined(TestReports, :RUNNER_FILE)
-    @test isfile(TestReports.RUNNER_FILE)
+@testset "runner script" begin
+    @test isdefined(TestReports, :RUNNER_SCRIPT)
+    @test isfile(TestReports.RUNNER_SCRIPT)
 
     if Sys.islinux()
-        @test uperm(TestReports.RUNNER_FILE) & 0x01 != 0
-        @test gperm(TestReports.RUNNER_FILE) & 0x01 != 0
-        @test operm(TestReports.RUNNER_FILE) & 0x01 != 0
+        @test uperm(TestReports.RUNNER_SCRIPT) & 0x01 != 0
+        @test gperm(TestReports.RUNNER_SCRIPT) & 0x01 != 0
+        @test operm(TestReports.RUNNER_SCRIPT) & 0x01 != 0
     end
 end
 
 runner_cmd = if Sys.iswindows()
-    `julia $(TestReports.RUNNER_FILE) --`
+    `julia $(TestReports.RUNNER_SCRIPT) --`
 else
-    `$(TestReports.RUNNER_FILE)`
+    `$(TestReports.RUNNER_SCRIPT)`
 end
 test_script = "reporttests_testsets.jl"
 reference_suffix = VERSION >= v"1.7" ? "" : "_pre_1_7"
 
 @testset "parse_args" begin
-    include(TestReports.RUNNER_FILE)
+    include(TestReports.RUNNER_SCRIPT)
     @test parse_args([]) === nothing  # Shows help
     @test_throws ArgumentError parse_args(["--"])
 
