@@ -73,6 +73,18 @@ end
     @test !success(p)
 end
 
+@testset "use test script exit code" begin
+    mktempdir() do dir
+        exit_code = 42
+        exit_test_script = joinpath(dir, "runtests.jl")
+        write(exit_test_script, "exit($exit_code)")
+
+        p = run(ignorestatus(`$runner_cmd $exit_test_script`))
+        @test !success(p)
+        @test p.exitcode == exit_code
+    end
+end
+
 @testset "default output file" begin
     output_file = "testlog.xml"
     p = run(ignorestatus(`$runner_cmd $test_script`))
