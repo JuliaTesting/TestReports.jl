@@ -8,7 +8,7 @@ const TEST_PKG = (name = "Example", uuid = UUID("7876af07-990d-54b4-ab0e-2369062
 
 @testset "SingleNest" begin
     test_file = VERSION >= v"1.7.0" ? "references/singlenest.txt" : "references/singlenest_pre_1_7.txt"
-    @test_reference test_file read(`$(Base.julia_cmd()) -e "using Test; using TestReports; (@testset ReportingTestSet \"\" begin @testset \"a\" begin @test 1 == 1 end end) |> report |> print"`, String) |>  clean_output
+    @test_reference test_file read(`$(Base.julia_cmd()) -e "using Test; using TestReports; (@testset ReportingTestSet \"\" begin @testset \"a\" begin @test 1 == 1 end end) |> report |> print"`, String) |> clean_output |> pretty_format_xml
 end
 
 @testset "Complex Example" begin
@@ -19,7 +19,7 @@ end
     else
         "references/complexexample_pre_1_7.txt"
     end
-    @test_reference test_file read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> clean_output
+    @test_reference test_file read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> clean_output |> pretty_format_xml
 end
 
 @testset "TestsWithProperties" begin
@@ -30,7 +30,7 @@ end
     end
     logfile = joinpath(@__DIR__, "testlog.xml")
     test_file = VERSION >= v"1.7.0" ? "references/test_with_properties.txt" : "references/test_with_properties_pre_1_7.txt"
-    @test_reference test_file read(logfile, String) |> clean_output
+    @test_reference test_file read(logfile, String) |> clean_output |> pretty_format_xml
 end
 
 @testset "Runner tests" begin
