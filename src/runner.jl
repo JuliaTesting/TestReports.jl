@@ -1,3 +1,16 @@
+"""
+The path to the test runner script provided by TestReports. Similar to running
+[`TestReports.test`](@ref) but allows the user to specify any test file to run and not just
+`test/runtests.jl`.
+
+## Example
+
+```julia
+run(`\$(TestReports.RUNNER_SCRIPT) mytests.jl --output=junit-report.xml`)
+```
+"""
+const RUNNER_SCRIPT = abspath(joinpath(@__DIR__(), "..", "bin", "reporttests.jl"))
+
 "Exit code for runner when tests fail"
 const TESTS_FAILED = 3
 

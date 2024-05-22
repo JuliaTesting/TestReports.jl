@@ -1,14 +1,24 @@
-script_runner = if VERSION >= v"1.7"
-    joinpath(pkgdir(TestReports), "bin", "reporttests.jl")
-else
-    joinpath(@__DIR__(), "..", "bin", "reporttests.jl")
+@testset "runner script" begin
+    @test isdefined(TestReports, :RUNNER_SCRIPT)
+    @test isfile(TestReports.RUNNER_SCRIPT)
+
+    if Sys.islinux()
+        @test uperm(TestReports.RUNNER_SCRIPT) & 0x01 != 0
+        @test gperm(TestReports.RUNNER_SCRIPT) & 0x01 != 0
+        @test operm(TestReports.RUNNER_SCRIPT) & 0x01 != 0
+    end
 end
-script_runner_cmd = Sys.iswindows() ? `julia $script_runner --` : `$script_runner`
+
+runner_cmd = if Sys.iswindows()
+    `julia $(TestReports.RUNNER_SCRIPT) --`
+else
+    `$(TestReports.RUNNER_SCRIPT)`
+end
 test_script = "reporttests_testsets.jl"
 reference_suffix = VERSION >= v"1.7" ? "" : "_pre_1_7"
 
 @testset "parse_args" begin
-    include(script_runner)
+    include(TestReports.RUNNER_SCRIPT)
     @test parse_args([]) === nothing  # Shows help
     @test_throws ArgumentError parse_args(["--"])
 
@@ -45,25 +55,15 @@ reference_suffix = VERSION >= v"1.7" ? "" : "_pre_1_7"
     end
 end
 
-@testset "executable" begin
-    @test isfile(script_runner)
-
-    if Sys.islinux()
-        @test uperm(script_runner) & 0x01 != 0
-        @test gperm(script_runner) & 0x01 != 0
-        @test operm(script_runner) & 0x01 != 0
-    end
-end
-
 @testset "no specified test script" begin
-    p = run(ignorestatus(`$script_runner_cmd`))
+    p = run(ignorestatus(`$runner_cmd`))
     @test !success(p)
 end
 
 @testset "default output file" begin
     reference_file = "references/reporttests_pass$reference_suffix.xml"
     output_file = "testlog.xml"
-    p = run(ignorestatus(`$script_runner_cmd $test_script`))
+    p = run(ignorestatus(`$runner_cmd $test_script`))
     try
         @test success(p)
         @test isfile(output_file)
@@ -76,7 +76,7 @@ end
 @testset "specify output file" begin
     reference_file = "references/reporttests_pass$reference_suffix.xml"
     output_file = "junit-report.xml"
-    p = run(ignorestatus(`$script_runner_cmd $test_script --output=$output_file`))
+    p = run(ignorestatus(`$runner_cmd $test_script --output=$output_file`))
     try
         @test success(p)
         @test isfile(output_file)
@@ -89,7 +89,7 @@ end
 @testset "test args" begin
     reference_file = "references/reporttests_fail$reference_suffix.xml"
     output_file = "testlog.xml"
-    p = run(ignorestatus(`$script_runner_cmd $test_script -- foo -e bar`))
+    p = run(ignorestatus(`$runner_cmd $test_script -- foo -e bar`))
     try
         @test !success(p)
         @test isfile(output_file)
