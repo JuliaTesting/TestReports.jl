@@ -79,6 +79,10 @@ if abspath(PROGRAM_FILE) == @__FILE__()
     )
     cmd = TestReports.gen_command(runner_code, ``, coverage)
 
-    p = run(ignorestatus(cmd))
-    success(p) || exit(p.exitcode)
+    try
+        run(cmd)
+    catch e
+        e isa ProcessFailedException && exit(only(e.procs).exitcode)
+        rethrow()
+    end
 end
