@@ -80,5 +80,5 @@ if abspath(PROGRAM_FILE) == @__FILE__()
     cmd = TestReports.gen_command(runner_code, ``, coverage)
 
     p = run(ignorestatus(cmd))
-    success(p) || exit(p.exitcode)
+    exit(p.exitcode)
 end
