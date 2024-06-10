@@ -11,6 +11,7 @@ end
         @test 2 == 2
     end
     flattened_testsets = TestReports.flatten_results!(ts)
+    @test flattened_testsets isa Vector
     @test length(flattened_testsets) == 1
     @test all(ts -> ts isa AbstractTestSet, flattened_testsets)
     @test flattened_testsets[1].description == "Top-Level"
