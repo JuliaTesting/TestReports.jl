@@ -263,6 +263,9 @@ end
 
 Returns a flat vector of `TestSet`s which only contain `Result`s. This is necessary for
 writing a JUnit XML report the schema does not allow nested XML `testsuite` elements.
+
+Warning: Alters the original hierarchy inside `ts` and potentially removes testsets
+         from it. Be sure to rely only on the returned vector after usage.
 """
 flatten_results!(ts::AbstractTestSet) = _flatten_results!(ts, 0)
 
