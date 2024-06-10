@@ -238,6 +238,7 @@ does not throw an exception on a failure. Thus to set the exit code from
 the runner code, we check it using `exit(any_problems(top_level_testset))`.
 """
 any_problems(ts::AbstractTestSet) = any(any_problems.(ts.results))
+any_problems(v::AbstractVector{<:AbstractTestSet}) = any(any_problems.(v))
 any_problems(rs::ReportingResult) = any_problems(rs.result)
 any_problems(::Pass) = false
 any_problems(::Fail) = true

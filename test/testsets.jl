@@ -158,6 +158,15 @@ end
         Test.record(ts, fail)
         @test any_problems(ts) === true
     end
+
+    @testset "vector" begin
+        ts = [ReportingTestSet("first"), ReportingTestSet("second")]
+        Test.record(ts[1], pass)
+        Test.record(ts[2], pass)
+        @test any_problems(ts) === false
+        Test.record(ts[2], fail)
+        @test any_problems(ts) === true
+    end
 end
 
 @testset "Timing" begin
