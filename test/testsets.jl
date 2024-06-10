@@ -137,7 +137,7 @@ end
 
 @testset "any_problems" begin
     pass = Pass(Symbol(), nothing, nothing, nothing)
-    fail = Fail(Symbol(), nothing, nothing, nothing, LineNumberNode(1))
+    fail = Fail(Symbol(), "false", nothing, nothing, LineNumberNode(1))
 
     @testset "results" begin
         @test any_problems(pass) === false
