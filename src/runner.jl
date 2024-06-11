@@ -151,10 +151,11 @@ function gen_runner_code(testfilename, logfilename, test_args)
         end
 
         # Flatten before calling `report` to avoid a `deepcopy`.
+        flattened_testsets = TestReports.flatten_results!(ts)
         open($(repr(logfilename)), "w") do io
-            prettyprint(io, report(TestReports.flatten_results!(ts)))
+            prettyprint(io, report(flattened_testsets))
         end
-        any_problems(ts) && exit(TestReports.TESTS_FAILED)
+        any_problems(flattened_testsets) && exit(TestReports.TESTS_FAILED)
         """
     return runner_code
 end

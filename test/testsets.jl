@@ -11,6 +11,7 @@ end
         @test 2 == 2
     end
     flattened_testsets = TestReports.flatten_results!(ts)
+    @test flattened_testsets isa Vector
     @test length(flattened_testsets) == 1
     @test all(ts -> ts isa AbstractTestSet, flattened_testsets)
     @test flattened_testsets[1].description == "Top-Level"
@@ -135,32 +136,38 @@ end
 end
 
 @testset "any_problems" begin
-    @test any_problems(Pass(Symbol(), nothing, nothing, nothing)) == false
-    @test any_problems(Fail(Symbol(), nothing, nothing, nothing, LineNumberNode(1))) == true
-    @test any_problems(Broken(Symbol(1), nothing)) == false
-    @test any_problems(Error(Symbol(), nothing, nothing, nothing, LineNumberNode(1))) == true
+    pass = Pass(Symbol(), nothing, nothing, nothing)
+    fail = Fail(Symbol(), "false", nothing, nothing, LineNumberNode(1))
 
-    fail_code = """
-    using Test
-    using TestReports
-    ts = @testset ReportingTestSet "eg" begin
-        @test false == true
-    end;
-    exit(any_problems(ts))
-    """
+    @testset "results" begin
+        @test any_problems(pass) === false
+        @test any_problems(fail) === true
+        @test any_problems(Broken(Symbol(1), nothing)) === false
+        @test any_problems(Error(Symbol(), nothing, nothing, nothing, LineNumberNode(1))) === true
+    end
 
-    @test_throws Exception run(`$(Base.julia_cmd()) -e $(fail_code)`)
+    @testset "testsets" begin
+        ts = DefaultTestSet("")
+        Test.record(ts, pass)
+        @test any_problems(ts) === false
+        Test.record(ts, fail)
+        @test any_problems(ts) === true
 
-    pass_code = """
-    using Test
-    using TestReports
-    ts = @testset ReportingTestSet "eg" begin
-        @test true == true
-    end;
-    exit(any_problems(ts))
-    """
+        ts = ReportingTestSet("")
+        Test.record(ts, pass)
+        @test any_problems(ts) === false
+        Test.record(ts, fail)
+        @test any_problems(ts) === true
+    end
 
-    @test run(`$(Base.julia_cmd()) -e $(pass_code)`) isa Any #this line would error if fail
+    @testset "vector" begin
+        ts = [ReportingTestSet("first"), ReportingTestSet("second")]
+        Test.record(ts[1], pass)
+        Test.record(ts[2], pass)
+        @test any_problems(ts) === false
+        Test.record(ts[2], fail)
+        @test any_problems(ts) === true
+    end
 end
 
 @testset "Timing" begin

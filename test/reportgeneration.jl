@@ -90,6 +90,7 @@ end
 @testset "Test packages" begin
     # Errors
     test_package_expected_fail("FailedTest")
+    test_package_expected_fail("FailedNestedTest")
     test_package_expected_fail("ErroredTest")
     test_package_expected_fail("NoTestFile")
 
