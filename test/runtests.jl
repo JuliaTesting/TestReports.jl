@@ -1,3 +1,4 @@
+using Aqua: Aqua
 using Dates
 using EzXML
 using ReferenceTests
@@ -11,6 +12,10 @@ include("utils.jl")
 
 # Include other test scripts
 @testset "TestReports" begin
+    @testset "Aqua" begin
+        Aqua.test_all(TestReports)
+    end
+
     @testset "testsets" begin include("testsets.jl") end
     @testset "properties" begin include("properties.jl") end
     @testset "report generation" begin include("reportgeneration.jl") end
