@@ -12,7 +12,9 @@ include("utils.jl")
 # Include other test scripts
 @testset "TestReports" begin
     @testset "testsets" begin include("testsets.jl") end
-    @testset "record property" begin include("recordproperty.jl") end
+    @testset "properties" begin include("properties.jl") end
     @testset "report generation" begin include("reportgeneration.jl") end
     @testset "runner internals" begin include("runnerinternals.jl") end
+    @testset "to_xml" begin include("to_xml.jl") end
+    @testset "reporttests script" begin include("reporttests_script.jl") end
 end

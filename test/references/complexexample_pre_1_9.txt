@@ -1,40 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites tests="19" failures="6" errors="4">
   <testsuite name="Math" tests="3" failures="1" errors="0" time="0.0" timestamp="0" hostname="localhost" id="0">
-    <testcase name="pass (info lost) (Test 1)" id="1" classname="Math" time="0.0"/>
+    <testcase name="4 % 2 == 0" id="1" classname="Math" time="0.0"/>
     <testcase name="sqrt(20) == 5" id="2" classname="Math" time="0.0">
       <failure message="4.47213595499958 == 5" type="test">Test Failed
   Expression: sqrt(20) == 5
    Evaluated: 4.47213595499958 == 5</failure>
     </testcase>
-    <testcase name="pass (info lost) (Test 3)" id="3" classname="Math" time="0.0"/>
+    <testcase name="16 == 16" id="3" classname="Math" time="0.0"/>
   </testsuite>
   <testsuite name="Math/Multiplication" tests="3" failures="1" errors="0" time="0.0" timestamp="0" hostname="localhost" id="1">
-    <testcase name="pass (info lost) (Test 1)" id="1" classname="Math/Multiplication" time="0.0"/>
+    <testcase name="1 * 3 == 3" id="1" classname="Math/Multiplication" time="0.0"/>
     <testcase name="1 * 2 == 5" id="2" classname="Math/Multiplication" time="0.0">
       <failure message="2 == 5" type="test">Test Failed
   Expression: 1 * 2 == 5
    Evaluated: 2 == 5</failure>
     </testcase>
-    <testcase name="pass (info lost) (Test 3)" id="3" classname="Math/Multiplication" time="0.0"/>
+    <testcase name="1 * 4 == 4" id="3" classname="Math/Multiplication" time="0.0"/>
   </testsuite>
   <testsuite name="Math/addition" tests="3" failures="1" errors="0" time="0.0" timestamp="0" hostname="localhost" id="2">
-    <testcase name="pass (info lost) (Test 1)" id="1" classname="Math/addition" time="0.0"/>
+    <testcase name="1 + 1 == 2" id="1" classname="Math/addition" time="0.0"/>
     <testcase name="1 + 2 == 5" id="2" classname="Math/addition" time="0.0">
       <failure message="3 == 5" type="test">Test Failed
   Expression: 1 + 2 == 5
    Evaluated: 3 == 5</failure>
     </testcase>
-    <testcase name="pass (info lost) (Test 3)" id="3" classname="Math/addition" time="0.0"/>
+    <testcase name="1 + 4 == 5" id="3" classname="Math/addition" time="0.0"/>
   </testsuite>
   <testsuite name="Math/addition/negative addition" tests="3" failures="1" errors="0" time="0.0" timestamp="0" hostname="localhost" id="3">
-    <testcase name="pass (info lost) (Test 1)" id="1" classname="Math/addition/negative addition" time="0.0"/>
+    <testcase name="1 + -1 == 0" id="1" classname="Math/addition/negative addition" time="0.0"/>
     <testcase name="1 + -2 == 1" id="2" classname="Math/addition/negative addition" time="0.0">
       <failure message="-1 == 1" type="test">Test Failed
   Expression: 1 + -2 == 1
    Evaluated: -1 == 1</failure>
     </testcase>
-    <testcase name="pass (info lost) (Test 3)" id="3" classname="Math/addition/negative addition" time="0.0"/>
+    <testcase name="10 + -5 == 5" id="3" classname="Math/addition/negative addition" time="0.0"/>
   </testsuite>
   <testsuite name="Math/other" tests="4" failures="0" errors="3" time="0.0" timestamp="0" hostname="localhost" id="4">
     <testcase name="sqrt(-1)" id="1" classname="Math/other" time="0.0">
@@ -72,6 +72,6 @@
     </testcase>
   </testsuite>
   <testsuite name="Math/using function from a module" tests="1" failures="0" errors="0" time="0.0" timestamp="0" hostname="localhost" id="7">
-    <testcase name="pass (info lost) (Test 1)" id="1" classname="Math/using function from a module" time="0.0"/>
+    <testcase name="nthreads() &gt; 0" id="1" classname="Math/using function from a module" time="0.0"/>
   </testsuite>
 </testsuites>

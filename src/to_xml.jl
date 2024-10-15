@@ -120,30 +120,29 @@ end
 #####################
 
 """
-    report(ts::AbstractTestSet)
+    report(ts::AbstractTestSet) -> XMLDocument
 
-Will produce an `XMLDocument` that contains a report about the `TestSet`'s results.
-This report will follow the JUnit XML schema.
+Produce an JUnit XML report details about the contained `TestSet`s and `Result`s. As the
+JUnit XML schema does not allow nested `testsuite` elements the report will flatten the
+hierarchical `TestSet` structure. Each `TestSet` will become a `testsuite` element and each
+`Result` will become a `testcase` element.
 
-To report correctly, the `TestSet` must have the following structure:
+A `Result` will only be reported once within its parent `TestSet` to avoid having duplicate
+entries within the report and avoid problems with total test counts not matching Julia
+output.
 
-    AbstractTestSet
-      └─ AbstractTestSet
-           └─ AbstractResult
-
-That is, the results of the top level `TestSet` must all be `AbstractTestSet`s,
-and the results of those `TestSet`s must all be `Result`s.
-
-Additionally, all of the `AbstractTestSet`s must have both `description` and
-`results` fields.
+All `AbstractTestSet`s contained within `ts` must have a `description::AbstractString` field
+and an iterable `results` field.
 """
-function report(ts::AbstractTestSet)
-    check_ts(ts)
+report(ts::AbstractTestSet) = report(flatten_results!(deepcopy(ts)))
+
+function report(testsets::Vector{<:AbstractTestSet})
+    check_ts(testsets)
     total_ntests = 0
     total_nfails = 0
     total_nerrors = 0
     testsuiteid = 0 # ID increments from 0
-    x_testsuites = map(ts.results) do result
+    x_testsuites = map(testsets) do result
         x_testsuite, ntests, nfails, nerrors = to_xml(result)
         total_ntests += ntests
         total_nfails += nfails
@@ -159,7 +158,7 @@ function report(ts::AbstractTestSet)
                                          total_nerrors,
                                          x_testsuites))
     
-    xdoc
+    return xdoc
 end
 
 """
@@ -170,11 +169,13 @@ the results of `ts` do not have both `description` or `results` fields.
 
 See also: [`report`](@ref)
 """
-function check_ts(ts::AbstractTestSet)
-    !all(isa.(ts.results, AbstractTestSet)) && throw(ArgumentError("Results of ts must all be AbstractTestSets. See documentation for `report`."))
-    for results_ts in ts.results
-        !isa(results_ts.description, AbstractString) && throw(ArgumentError("description field of $(typeof(results_ts)) must be an AbstractString."))
-        !all(isa.(results_ts.results, Result)) && throw(ArgumentError("Results of each AbstractTestSet in ts.results must all be Results. See documentation for `report`."))
+function check_ts(testsets::Vector{<:AbstractTestSet})
+    for ts in testsets
+        if !isa(ts.description, AbstractString)
+            throw(ArgumentError("description field of $(typeof(ts)) must be an `AbstractString`."))
+        elseif !all(r -> r isa Result, ts.results)
+            throw(ArgumentError("Results of each `AbstractTestSet` in ts.results must all be `Result`s. See documentation for `report`."))
+        end
     end
 end
 
@@ -201,11 +202,12 @@ function to_xml(ts::AbstractTestSet)
         # Set attributes which require variables in this scope
         ntests > 0 && set_attribute!(x_testcase, "id", total_ntests)  # Ignore both testsuites and errors outside of tests
         ispass(result) && VERSION < v"1.7.0" && set_attribute!(x_testcase, "name", x_testcase["name"] * " (Test $total_ntests)")
+        add_properties!(x_testcase, test_properties(ts))
         x_testcase
     end
 
     x_testsuite = testsuite_xml(ts.description, total_ntests, total_nfails, total_nerrors, x_testcases, time_taken(ts)::Millisecond, start_time(ts)::DateTime, hostname(ts))
-    add_testsuite_properties!(x_testsuite, ts)
+    add_properties!(x_testsuite, testset_properties(ts))
     x_testsuite, total_ntests, total_nfails, total_nerrors
 end
 
@@ -244,7 +246,8 @@ end
 
 function to_xml(v::Error)
     message, type, ntest = get_error_info(v)
-    x_testcase = error_xml(message, type, v.backtrace)
+    x_error = error_xml(message, type, v.backtrace)
+    x_testcase = testcase_xml(v, [x_error])
     x_testcase, ntest, 0, 1  # Increment number of errors by 1
 end
 
@@ -268,17 +271,37 @@ function get_error_info(v::Error)
         ntest = 1
     elseif v.test_type == :nontest_error
         msg = "Got exception outside of a @test"
-        type = typeof(eval(Meta.parse(v.value)))
+        type = parse_error_type(v.value)
         ntest = 0
     elseif v.test_type == :test_error
-        err = eval(Meta.parse(v.value))
-        msg = sprint(showerror, err)
-        type = typeof(err)
+        type = parse_error_type(v.value)
+        msg = parse_error_msg(v.value)
         ntest = 1
     else
         throw(PkgTestError("Unknown test type \"$(v.test_type)\" in Error"))
     end
     return msg, type, ntest
+end
+
+function parse_error_type(err_string)
+    try
+        # Return error type. Don't eval here as exception type might not be defined here
+        err_expr = Meta.parse(err_string)
+        return string(err_expr.args[1])
+    catch e
+        # Fallback, produces ugly output but at least it's there
+        return err_string
+    end
+end
+
+function parse_error_msg(err_string)
+    local err
+    try
+        err = eval(Meta.parse(err_string))
+    catch e
+        err = err_string
+    end
+    return sprint(showerror, err)
 end
 
 """
@@ -300,25 +323,22 @@ function get_failure_message(v::Fail)
 end
 
 """
-    add_testsuite_properties!(x_testsuite, ts::AbstractTestSet)
+    add_properties!(x_element, properties)
 
-Add all key value pairs in the `properties` field of a `AbstractTestSet` to the
-corresponding testsuite xml element. This function assumes that the type of `ts`
-has a `TestReports.properties` method defined.
-
-See also: [`properties`](@ref)
+Add all key value pairs defined within the `properties` to the referenced XML element.
 """
-function add_testsuite_properties!(x_testsuite, ts::AbstractTestSet)
-    properties_dict = properties(ts)
-    if !isnothing(properties_dict) && !isempty(keys(properties_dict))
+function add_properties!(x_element, properties)
+    if !isempty(properties)
         x_properties = ElementNode("properties")
-        for (name, value) in properties_dict
+        for (name, value) in properties
             x_property = ElementNode("property")
             set_attribute!(x_property, "name", name)
             set_attribute!(x_property, "value", value)
             link!(x_properties, x_property)
         end
-        link!(x_testsuite, x_properties)
+        link!(x_element, x_properties)
     end
-    return x_testsuite
+    return x_element
 end
+
+add_properties!(x_element, properties::Nothing) = x_element

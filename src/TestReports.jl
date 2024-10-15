@@ -12,7 +12,7 @@ using Test: AbstractTestSet, DefaultTestSet, Result, Pass, Fail, Error, Broken,
 
 import Test: finish, record
 
-export ReportingTestSet, any_problems, report, recordproperty
+export ReportingTestSet, any_problems, report, record_test_property, record_testset_property
 
 const TESTREPORTS_VERSION = let # Copied from Documenter.jl
     project = joinpath(dirname(dirname(pathof(TestReports))), "Project.toml")
@@ -30,6 +30,6 @@ include("./testsets.jl")
 include("to_xml.jl")
 include("compat_check.jl")
 include("runner.jl")
-include("recordproperty.jl")
+include("properties.jl")
 
 end # module

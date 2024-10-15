@@ -56,26 +56,31 @@ and this is not recommended or supported.
 A `ReportingTestSet` has the `description` and `results` fields as per a
 `DefaultTestSet`, and has the following additional fields:
 
-- `properties`: a dictionary which is used to record properties to be
-    inserted into the report.
+- `testset_properties`: used to record testset properties to be inserted into the report.
+- `test_properties`: used to record test properties to be inserted into the report.
 - `start_time::DateTime`: the start date and time of the testing (local system time).
 - `time_taken::Millisecond`: the time taken in milliseconds to run the `TestSet`.
 - `last_record_time::DateTime`: the time when `record` was last called.
 - `hostname::String`: the name of host on which the testset was executed.
 
-See also: [`flatten_results!`](@ref), [`recordproperty`](@ref), [`report`](@ref)
+See also: [`flatten_results!`](@ref), [`record_testset_property`](@ref),
+[`record_testset_property`](@ref), and [`report`](@ref).
 """
 mutable struct ReportingTestSet <: AbstractTestSet
     description::String
     results::Vector
-    properties::Dict{String, Any}
+    testset_properties::Vector{Pair{String, Any}}
+    test_properties::Vector{Pair{String, Any}}
     start_time::DateTime
     time_taken::Millisecond
     last_record_time::DateTime
     hostname::String
+    verbose::Bool
+    showtiming::Bool
 end
 
-ReportingTestSet(desc) = ReportingTestSet(desc, [], Dict(), now(), Millisecond(0), now(), gethostname())
+ReportingTestSet(desc; verbose=false, showtiming=true) = ReportingTestSet(desc, [], [], [], now(), Millisecond(0), now(), gethostname(), verbose, showtiming)
+
 function record(ts::ReportingTestSet, t::Result)
     push!(ts.results, ReportingResult(t, now()-ts.last_record_time))
     ts.last_record_time = now()
@@ -103,23 +108,64 @@ function finish(ts::ReportingTestSet)
     # Display before flattening to match Pkg.test output
     display_reporting_testset(ts)
 
-    # We are the top level, lets do this
-    flatten_results!(ts)
+    return ts
 end
 
 #################################
 # Accessing and setting methods #
 #################################
-"""
-    properties(ts::ReportingTestSet)
-    properties(ts::AbstractTestSet)
 
-Get the properties dictionary of a `ReportingTestSet`, returns
-nothing for an `AbstractTestSet`. Can be extended for custom
-`TestSet`s, and must return either a `Dict` or `nothing`.
 """
-properties(ts::ReportingTestSet) = ts.properties
-properties(ts::AbstractTestSet) = nothing
+    testset_properties(ts::AbstractTestSet) -> Union{Vector{Pair{String, Any}}, Nothing}
+
+Get the properties associated with a testset. Can be extended for custom testsets. Defaults
+to `nothing` for testsets which do not support testset properties.
+
+When generating a JUnit XML report these will be the properties associated with a
+`testsuite` element.
+
+See also: [`test_properties`](@ref).
+"""
+testset_properties(::AbstractTestSet) = nothing
+testset_properties(ts::ReportingTestSet) = ts.testset_properties
+
+"""
+    record_testset_property!(ts::AbstractTestSet, name, value)
+
+Associate a property with the testset. Can be extended for custom testsets.
+"""
+record_testset_property!(ts::AbstractTestSet, name::AbstractString, value) = ts
+
+function record_testset_property!(ts::ReportingTestSet, name::AbstractString, value)
+    push!(ts.testset_properties, name => value)
+    return ts
+end
+
+"""
+    test_properties(ts::AbstractTestSet) -> Union{Vector{Pair{String, Any}}, Nothing}
+
+Get the properties associated with tests within a testset. Can be extended for custom
+testsets. Will return `nothing` for testsets which do not support test properties.
+
+When generating a JUnit XML report these will be the properties associated with all
+`testcase` elements contained within a `testsuite` element.
+
+See also: [`testset_properties`](@ref).
+"""
+test_properties(::AbstractTestSet) = nothing
+test_properties(ts::ReportingTestSet) = ts.test_properties
+
+"""
+    record_test_property!(ts::AbstractTestSet, name, value)
+
+Associate a property with the tests within the testset. Can be extended for custom testsets.
+"""
+record_test_property!(ts::AbstractTestSet, name::AbstractString, value) = ts
+
+function record_test_property!(ts::ReportingTestSet, name::AbstractString, value)
+    push!(ts.test_properties, name => value)
+    return ts
+end
 
 """
     start_time(ts::ReportingTestSet)
@@ -163,6 +209,12 @@ Sets the time taken field of a `ReportingTestSet`. This is used when flattening
 """
 set_time_taken!(ts::ReportingTestSet, time_taken::Millisecond) = ts.time_taken = time_taken
 set_time_taken!(ts::AbstractTestSet, time_taken::Millisecond) = nothing
+VERSION >= v"1.8" && function set_time_taken!(ts::DefaultTestSet, time_taken::Millisecond) 
+    ts.time_start = 0
+    ts.time_end = time_taken.value / 1000
+    return ts
+end
+
 
 """
     set_start_time!(ts::ReportingTestSet, start_time)
@@ -186,6 +238,7 @@ does not throw an exception on a failure. Thus to set the exit code from
 the runner code, we check it using `exit(any_problems(top_level_testset))`.
 """
 any_problems(ts::AbstractTestSet) = any(any_problems.(ts.results))
+any_problems(v::AbstractVector{<:AbstractTestSet}) = any(any_problems.(v))
 any_problems(rs::ReportingResult) = any_problems(rs.result)
 any_problems(::Pass) = false
 any_problems(::Fail) = true
@@ -197,32 +250,33 @@ any_problems(::Error) = true
 #####################
 
 """
+    has_description(ts::AbstractTestSet) -> Bool
+
+Determine if the testset has been provided a description.
+"""
+function has_description(ts::AbstractTestSet)
+    !isempty(ts.description) && ts.description != "test set"
+end
+
+"""
     flatten_results!(ts::AbstractTestSet)
 
-Returns a flat structure 3 deep, of `TestSet` -> `TestSet` -> `Result`. This is necessary
-for writing a report, as a JUnit XML does not allow one testsuite to be nested in another.
-The top level `TestSet` becomes the testsuites element, and the middle level `TestSet`s
-become individual testsuite elements, and the `Result`s become the testcase elements.
+Returns a flat vector of `TestSet`s which only contain `Result`s. This is necessary for
+writing a JUnit XML report the schema does not allow nested XML `testsuite` elements.
 
-If `ts.results` contains any `Result`s, these are added into a new `TestSet` with the
-description "Top level tests", which then replaces them in `ts.results`.
+Warning: Alters the original hierarchy inside `ts` and potentially removes testsets
+         from it. Be sure to rely only on the returned vector after usage.
 """
-function flatten_results!(ts::AbstractTestSet)
-    # Add any top level Results to their own TestSet
-    handle_top_level_results!(ts)
-
-    # Flatten all results of top level testset, which should all be testsets now
-    ts.results = vcat(_flatten_results!.(ts.results)...)
-    return ts
-end
+flatten_results!(ts::AbstractTestSet) = _flatten_results!(ts, 0)
 
 """
     _flatten_results!(ts::AbstractTestSet)::Vector{<:AbstractTestSet}
 
 Recursively flatten `ts` to a vector of `TestSet`s.
 """
-function _flatten_results!(ts::AbstractTestSet)::Vector{<:AbstractTestSet}
+function _flatten_results!(ts::AbstractTestSet, depth::Int)::Vector{AbstractTestSet}
     original_results = ts.results
+    has_new_properties = !isempty(something(testset_properties(ts), tuple()))
     flattened_results = AbstractTestSet[]
     # Track results that are a Result so that if there are any, they can be added
     # in their own testset to flattened_results
@@ -235,24 +289,26 @@ function _flatten_results!(ts::AbstractTestSet)::Vector{<:AbstractTestSet}
     end
     function inner!(childts::AbstractTestSet)
         # Make it a sibling
-        update_testset_properties!(childts, ts)
-        childts.description = ts.description * "/" * childts.description
+        update_properties!(childts, ts)
+        if depth > 0 || has_description(ts)
+            childts.description = ts.description * "/" * childts.description
+        end
         push!(flattened_results, childts)
     end
 
     # Iterate through original_results
     for res in original_results
-        childs = _flatten_results!(res)
+        childs = _flatten_results!(res, depth + 1)
         for child in childs
             inner!(child)
         end
     end
 
-    # results will be empty if ts.results only contains testsets
-    if !isempty(results)
+    # Skip testsets which contain no results or new properties
+    if !isempty(results) || has_new_properties
         # Use same ts to preserve description
         ts.results = results
-        push!(flattened_results, ts)
+        pushfirst!(flattened_results, ts)
     end
     return flattened_results
 end
@@ -263,67 +319,42 @@ end
 Return vector containing `rs` so that when iterated through,
 `rs` is added to the results vector.
 """
-_flatten_results!(rs::Result) = [rs]
+_flatten_results!(rs::Result, depth::Int) = [rs]
 
 """
-    update_testset_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
+    update_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
 
-Adds properties of `ts` to `childts`. If any properties being added already exist in
-`childts`, a warning is displayed and the value in `ts` is overwritten.
+Adds properties of `ts` to `childts`.
 
-If the types of `ts` and\\or `childts` do not a method defined for `TestReports.properties`,
-this is handled as follows:
+If the types of `ts` and/or `childts` do not a method defined for properties, this is
+handled as follows:
+
 - If method not defined for `typeof(ts)`, it has no properties to add to `childts`
-    and therefore nothing happens.
-- If method not defined for `typeof(chidlts)` and `ts` has properties, then a warning
-    is shown.
+  and therefore nothing happens.
+- If method not defined for `typeof(childts)` and `ts` has properties, then a warning is
+  shown.
 
-See also: [`properties`](@ref)
+See also: [`testset_properties`](@ref) and [`test_properties`](@ref).
 """
-function update_testset_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
-    if isnothing(properties(childts)) && !isnothing(properties(ts)) && !isempty(properties(ts))
-        @warn "Properties of testset $(ts.description) can not be added to child testset $(childts.description) as it does not have a TestReports.properties method defined."
-        # No need to check if childts is has properties defined and ts doesn't as if this is the case
-        # ts has no properties to add to that of childts.
-    elseif !isnothing(properties(ts))
-        parent_keys = keys(properties(ts))
-        child_keys = keys(properties(childts))
-        # Loop through keys so that warnings can be issued for any duplicates
-        for key in parent_keys
-            if key in child_keys
-                @warn "Property $key in testest $(ts.description) overwritten by child testset $(childts.description)"
+function update_properties!(childts::AbstractTestSet, ts::AbstractTestSet)
+    for properties in (testset_properties, test_properties)
+        child_props = properties(childts)
+        parent_props = properties(ts)
+
+        # Children inherit the properties of their parents
+        if !isnothing(parent_props) && !isempty(parent_props)
+            if !isnothing(child_props)
+                prepend!(child_props, parent_props)
             else
-                properties(childts)[key] = properties(ts)[key]
+                @warn(
+                    "Properties of testset \"$(ts.description)\" can not be added to " *
+                    "child testset \"$(childts.description)\" as it does not have a " *
+                    "`TestReports.$(nameof(properties))` method defined."
+                )
             end
         end
     end
     return childts
-end
-
-"""
-    handle_top_level_results!(ts::AbstractTestSet)
-
-If `ts.results` contains any `Result`s, these are removed from `ts.results` and
-added to a new `ReportingTestSet`, which in turn is added to `ts.results`. This
-leaves `ts.results` only containing `AbstractTestSet`s.
-
-The `time_taken` field of the new `ReportingTestSet` is calculated by summing
-the time taken by the individual results, and the `start_time` field is set to
-the `start_time` field of `ts`.
-"""
-function handle_top_level_results!(ts::AbstractTestSet)
-    isa_Result = isa.(ts.results, Result)
-    if any(isa_Result)
-        original_results = ts.results
-        ts.results = AbstractTestSet[]
-        ts_nested = ReportingTestSet("Top level tests")
-        ts_nested.results = original_results[isa_Result]
-        set_time_taken!(ts_nested, sum(x -> time_taken(x)::Millisecond, ts_nested.results))
-        set_start_time!(ts_nested, start_time(ts)::DateTime)
-        push!(ts.results, ts_nested)
-        append!(ts.results, original_results[.!isa_Result])
-    end
-    return ts
 end
 
 """
@@ -339,9 +370,19 @@ function display_reporting_testset(ts::ReportingTestSet)
     try
         # Finish each of the results of the top level testset, to mimick the
         # output from Pkg.test()
-        finish.(ts_default.results)
-    catch TestSetException
+        for r in ts_default.results
+            if r isa DefaultTestSet
+                # finish sets `time_end=time()` for r. Previously we have set time_start to 0 and time_end to
+                # the time taken, so this is a way of ensuring the correct time is displayed
+                @static if VERSION >= v"1.8"
+                    r.time_start = time() - r.time_end
+                end
+                finish(r)
+            end
+        end
+    catch err
         # Don't want to error here if a test fails or errors. This is handled elswhere.
+        !(err isa TestSetException) && rethrow()
     end
     return nothing
 end
@@ -363,7 +404,12 @@ add_to_ts_default!(ts_default::DefaultTestSet, result::ReportingResult) = add_to
 add_to_ts_default!(ts_default::DefaultTestSet, result::Result) = record(ts_default, result)
 add_to_ts_default!(ts_default::DefaultTestSet, ts::AbstractTestSet) = record(ts_default, ts)
 function add_to_ts_default!(ts_default::DefaultTestSet, ts::ReportingTestSet)
-    sub_ts = DefaultTestSet(ts.description)
+    if VERSION >= v"1.8.0"
+        sub_ts = DefaultTestSet(ts.description, showtiming=ts.showtiming, verbose=ts.verbose)
+        set_time_taken!(sub_ts, ts.time_taken)
+    else
+        sub_ts = DefaultTestSet(ts.description)
+    end
     add_to_ts_default!.(Ref(sub_ts), ts.results)
     push!(ts_default.results, sub_ts)
 end

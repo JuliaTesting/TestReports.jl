@@ -8,12 +8,31 @@ const TEST_PKG = (name = "Example", uuid = UUID("7876af07-990d-54b4-ab0e-2369062
 
 @testset "SingleNest" begin
     test_file = VERSION >= v"1.7.0" ? "references/singlenest.txt" : "references/singlenest_pre_1_7.txt"
-    @test_reference test_file read(`$(Base.julia_cmd()) -e "using Test; using TestReports; (@testset ReportingTestSet \"blah\" begin @testset \"a\" begin @test 1 ==1 end end) |> report |> print"`, String) |>  clean_output
+    @test_reference test_file read(`$(Base.julia_cmd()) -e "using Test; using TestReports; (@testset ReportingTestSet \"\" begin @testset \"a\" begin @test 1 == 1 end end) |> report |> print"`, String) |> clean_output |> pretty_format_xml
 end
 
 @testset "Complex Example" begin
-    test_file = VERSION >= v"1.7.0" ? "references/complexexample.txt" : "references/complexexample_pre_1_7.txt"
-    @test_reference test_file read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> clean_output
+    test_file = if VERSION >= v"1.11-"
+        "references/complexexample.txt"
+    elseif VERSION >= v"1.9.0-beta4.29"  # https://github.com/JuliaLang/julia/pull/48526
+        "references/complexexample_pre_1_11.txt"
+    elseif VERSION >= v"1.7.0"
+        "references/complexexample_pre_1_9.txt"
+    else
+        "references/complexexample_pre_1_7.txt"
+    end
+    @test_reference test_file read(`$(Base.julia_cmd()) $(@__DIR__)/example.jl`, String) |> clean_output |> pretty_format_xml
+end
+
+@testset "TestsWithProperties" begin
+    pkg = "TestsWithProperties"
+    temp_pkg_dir() do tmp
+        Pkg.develop(Pkg.PackageSpec(path=test_package_path(pkg)))
+        TestReports.test(pkg)
+    end
+    logfile = joinpath(@__DIR__, "testlog.xml")
+    test_file = VERSION >= v"1.7.0" ? "references/test_with_properties.txt" : "references/test_with_properties_pre_1_7.txt"
+    @test_reference test_file read(logfile, String) |> clean_output |> pretty_format_xml
 end
 
 @testset "Runner tests" begin
@@ -71,6 +90,7 @@ end
 @testset "Test packages" begin
     # Errors
     test_package_expected_fail("FailedTest")
+    test_package_expected_fail("FailedNestedTest")
     test_package_expected_fail("ErroredTest")
     test_package_expected_fail("NoTestFile")
 
@@ -142,46 +162,32 @@ end
 end
 
 @testset "report - check_ts" begin
-    # No top level testset
-    ts = @testset TestReportingTestSet begin
-        @test true
-    end
-    @test_throws ArgumentError TestReports.check_ts(ts)
-
     # Not flattened
     ts = @testset TestReportingTestSet begin
+        @test true
         @testset TestReportingTestSet begin
             @test true
-            @testset TestReportingTestSet begin
-                @test true
-            end
         end
     end
-    @test_throws ArgumentError TestReports.check_ts(ts)
+    @test_throws ArgumentError TestReports.check_ts([ts])
 
     # No description field
-    ts = @testset TestReportingTestSet begin
-        @testset NoDescriptionTestSet begin
-            @test true
-        end
+    ts = @testset NoDescriptionTestSet begin
+        @test true
     end
-    @test_throws ErrorException TestReports.check_ts(ts)
+    @test_throws ErrorException TestReports.check_ts([ts])
 
     # No results field
-    ts = @testset TestReportingTestSet begin
-        @testset NoResultsTestSet begin
-            @test true
-        end
+    ts = @testset NoResultsTestSet begin
+        @test true
     end
-    @test_throws ErrorException TestReports.check_ts(ts)
+    @test_throws ErrorException TestReports.check_ts([ts])
 
     # Correct structure
     ts = @testset TestReportingTestSet begin
-        @testset TestReportingTestSet begin
-            @test true
-        end
+        @test true
     end
-    @test TestReports.check_ts(ts) isa Any # Doesn't error
+    @test TestReports.check_ts([ts]) isa Any # Doesn't error
 end
 
 @testset "Error counting - Issue #72" begin
@@ -190,7 +196,7 @@ end
             variableThatDoNotExits # No test here so shouldn't count
         end
         @testset "test_error" begin
-            @test variableThatDoNotExits == 42     
+            @test variableThatDoNotExits == 42
         end
         @testset "test_unbroken" begin
             @test_broken true

@@ -12,7 +12,9 @@ Documentation for `TestReports.jl`'s public interface.
 
 ```@docs
 TestReports.test
-recordproperty
+TestReports.RUNNER_SCRIPT
+record_testset_property
+record_test_property
 ReportingTestSet
 any_problems
 report
@@ -28,7 +30,7 @@ Package internals documentation.
 Modules = [TestReports]
 Pages   = ["runner.jl"]
 Public = false
-Filter = t -> t != TestReports.test
+Filter = t -> !(t in (TestReports.test, TestReports.RUNNER_SCRIPT))
 ```
 
 ### TestSets

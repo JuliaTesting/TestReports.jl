@@ -1,3 +1,16 @@
+"""
+The path to the test runner script provided by TestReports. Similar to running
+[`TestReports.test`](@ref) but allows the user to specify any test file to run and not just
+`test/runtests.jl`.
+
+## Example
+
+```julia
+run(`\$(TestReports.RUNNER_SCRIPT) mytests.jl --output=junit-report.xml`)
+```
+"""
+const RUNNER_SCRIPT = abspath(joinpath(@__DIR__(), "..", "bin", "reporttests.jl"))
+
 "Exit code for runner when tests fail"
 const TESTS_FAILED = 3
 
@@ -129,6 +142,7 @@ function gen_runner_code(testfilename, logfilename, test_args)
 
         using Test
         using TestReports
+        using TestReports.EzXML: prettyprint
 
         append!(empty!(ARGS), $(repr(test_args.exec)))
 
@@ -136,8 +150,12 @@ function gen_runner_code(testfilename, logfilename, test_args)
             include($(repr(testfilename)))
         end
 
-        write($(repr(logfilename)), report(ts))
-        any_problems(ts) && exit(TestReports.TESTS_FAILED)
+        # Flatten before calling `report` to avoid a `deepcopy`.
+        flattened_testsets = TestReports.flatten_results!(ts)
+        open($(repr(logfilename)), "w") do io
+            prettyprint(io, report(flattened_testsets))
+        end
+        any_problems(flattened_testsets) && exit(TestReports.TESTS_FAILED)
         """
     return runner_code
 end

@@ -1,0 +1,3 @@
+module FailedNestedTest
+
+end # module

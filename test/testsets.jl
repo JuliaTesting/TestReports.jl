@@ -1,49 +1,74 @@
-@testset "handle_top_level_results!" begin
-    # Simple top level resuls
-    ts = @testset TestReportingTestSet "" begin
+@testset "record_test_property!" begin
+    ts = @testset ReportingTestSet begin end
+    @test TestReports.record_test_property!(ts, "id", 1) === ts
+    @test TestReports.test_properties(ts) == ["id" => 1]
+end
+
+@testset "flatten_results!" begin
+    # Simple top level results
+    ts = @testset TestReportingTestSet "Top-Level" begin
         @test 1 == 1
         @test 2 == 2
     end
-
-    TestReports.handle_top_level_results!(ts)
-    @test length(ts.results) == 1
-    @test ts.results[1] isa AbstractTestSet
-    @test length(ts.results[1].results) == 2
-    @test all(isa.(ts.results[1].results, Result))
+    flattened_testsets = TestReports.flatten_results!(ts)
+    @test flattened_testsets isa Vector
+    @test length(flattened_testsets) == 1
+    @test all(ts -> ts isa AbstractTestSet, flattened_testsets)
+    @test flattened_testsets[1].description == "Top-Level"
+    @test length(flattened_testsets[1].results) == 2
+    @test all(r -> r isa Result, flattened_testsets[1].results)
 
     # Mix of top level testset and results
-    ts = @testset TestReportingTestSet "" begin
+    ts = @testset TestReportingTestSet "Top-Level" begin
         @test 1 == 1
         @test 2 == 2
         @testset "Inner" begin
             @test 3 == 3
             @test 4 == 4
         end
-    end 
+    end
+    flattened_testsets = TestReports.flatten_results!(ts)
+    @test length(flattened_testsets) == 2
+    @test all(ts -> ts isa AbstractTestSet, flattened_testsets)
+    @test flattened_testsets[1].description == "Top-Level"
+    @test length(flattened_testsets[1].results) == 2
+    @test all(r -> r isa Result, flattened_testsets[1].results)
+    @test flattened_testsets[2].description == "Top-Level/Inner"
+    @test length(flattened_testsets[2].results) == 2
+    @test all(r -> r isa Result, flattened_testsets[2].results)
 
-    TestReports.handle_top_level_results!(ts)
-    @test length(ts.results) == 2
-    @test all(isa.(ts.results,  AbstractTestSet))
-    @test length(ts.results[1].results) == 2
-    @test all(isa.(ts.results[1].results, Result))
-    @test length(ts.results[2].results) == 2
-    @test all(isa.(ts.results[2].results, Result))
-    @test ts.results[2].description == "Inner"
-
-    # Testset only
-    ts = @testset TestReportingTestSet "" begin
-        @testset "Shouldn't Change" begin
+    # Top-level named
+    ts = @testset TestReportingTestSet "Top-Level" begin
+        @testset "Inner" begin
             @test 1 == 1
             @test 2 == 2
         end
     end
+    flattened_testsets = TestReports.flatten_results!(ts)
+    @test length(flattened_testsets) == 1
+    @test flattened_testsets[1].description == "Top-Level/Inner"
 
-    TestReports.handle_top_level_results!(ts)
-    @test length(ts.results) == 1
-    @test ts.results[1].description == "Shouldn't Change"
-end
+    # Top-level unnamed
+    ts = @testset TestReportingTestSet "" begin
+        @testset "Inner" begin
+            @test 1 == 1
+            @test 2 == 2
+        end
+    end
+    flattened_testsets = TestReports.flatten_results!(ts)
+    @test length(flattened_testsets) == 1
+    @test flattened_testsets[1].description == "Inner"
 
-@testset "_flatten_results!" begin
+    ts = @testset TestReportingTestSet begin
+        @testset "Inner" begin
+            @test 1 == 1
+            @test 2 == 2
+        end
+    end
+    flattened_testsets = TestReports.flatten_results!(ts)
+    @test length(flattened_testsets) == 1
+    @test flattened_testsets[1].description == "Inner"
+
     # Single nested test
     ts = @testset TestReportingTestSet "Nested" begin
         @testset "1" begin
@@ -54,10 +79,10 @@ end
             end
         end
     end
-    flattened_results = TestReports._flatten_results!(ts)
-    @test length(flattened_results) == 1
-    @test flattened_results[1] isa AbstractTestSet
-    @test flattened_results[1].description == "Nested/1/2/3"
+    flattened_testsets = TestReports.flatten_results!(ts)
+    @test length(flattened_testsets) == 1
+    @test flattened_testsets[1] isa AbstractTestSet
+    @test flattened_testsets[1].description == "Nested/1/2/3"
 
     # Different level nested tests
     ts = @testset TestReportingTestSet "Nested" begin
@@ -70,11 +95,11 @@ end
             end
         end
     end
-    flattened_results = TestReports._flatten_results!(ts)
-    @test length(flattened_results) == 2
-    @test all(isa.(flattened_results, AbstractTestSet))
-    @test flattened_results[1].description == "Nested/1/2/3"
-    @test flattened_results[2].description == "Nested/1/2"
+    flattened_testsets = TestReports.flatten_results!(ts)
+    @test length(flattened_testsets) == 2
+    @test all(ts -> ts isa AbstractTestSet, flattened_testsets)
+    @test flattened_testsets[1].description == "Nested/1/2"
+    @test flattened_testsets[2].description == "Nested/1/2/3"
 end
 
 @testset "ReportingTestSet Display" begin
@@ -111,32 +136,38 @@ end
 end
 
 @testset "any_problems" begin
-    @test any_problems(Pass(Symbol(), nothing, nothing, nothing)) == false
-    @test any_problems(Fail(Symbol(), nothing, nothing, nothing, LineNumberNode(1))) == true
-    @test any_problems(Broken(Symbol(1), nothing)) == false
-    @test any_problems(Error(Symbol(), nothing, nothing, nothing, LineNumberNode(1))) == true
+    pass = Pass(Symbol(), nothing, nothing, nothing)
+    fail = Fail(Symbol(), "false", nothing, nothing, LineNumberNode(1))
 
-    fail_code = """
-    using Test
-    using TestReports
-    ts = @testset ReportingTestSet "eg" begin
-        @test false == true
-    end;
-    exit(any_problems(ts))
-    """
+    @testset "results" begin
+        @test any_problems(pass) === false
+        @test any_problems(fail) === true
+        @test any_problems(Broken(Symbol(1), nothing)) === false
+        @test any_problems(Error(Symbol(), nothing, nothing, nothing, LineNumberNode(1))) === true
+    end
 
-    @test_throws Exception run(`$(Base.julia_cmd()) -e $(fail_code)`)
+    @testset "testsets" begin
+        ts = DefaultTestSet("")
+        Test.record(ts, pass)
+        @test any_problems(ts) === false
+        Test.record(ts, fail)
+        @test any_problems(ts) === true
 
-    pass_code = """
-    using Test
-    using TestReports
-    ts = @testset ReportingTestSet "eg" begin
-        @test true == true
-    end;
-    exit(any_problems(ts))
-    """
+        ts = ReportingTestSet("")
+        Test.record(ts, pass)
+        @test any_problems(ts) === false
+        Test.record(ts, fail)
+        @test any_problems(ts) === true
+    end
 
-    @test run(`$(Base.julia_cmd()) -e $(pass_code)`) isa Any #this line would error if fail
+    @testset "vector" begin
+        ts = [ReportingTestSet("first"), ReportingTestSet("second")]
+        Test.record(ts[1], pass)
+        Test.record(ts[2], pass)
+        @test any_problems(ts) === false
+        Test.record(ts[2], fail)
+        @test any_problems(ts) === true
+    end
 end
 
 @testset "Timing" begin
@@ -198,4 +229,17 @@ end
     @test !TestReports.ispass(Broken(:a, 0))
     @test TestReports.ispass(TestReports.ReportingResult(Pass(:a, 0, 0, 0), Dates.Millisecond(1)))
     @test !TestReports.ispass(TestReports.ReportingResult(Broken(:a, 0), Dates.Millisecond(1)))
+end
+
+@testset "testset kwargs are handled - happy path" begin
+    ts = @testset ReportingTestSet "" begin
+        @testset verbose=true showtiming=false "Verbose" begin
+            @test true
+            @testset "inner" begin
+                @test 1+1 == 2
+                sleep(1)
+                @test true
+            end
+        end
+    end
 end
