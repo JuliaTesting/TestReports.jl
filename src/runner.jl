@@ -191,126 +191,6 @@ function gen_command(runner_code, julia_args, coverage)
     return cmd
 end
 
-"""
-    isinstalled!(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
-
-Checks if the package is installed by using `ensure_resolved` from `Pkg/src/Types.jl`.
-This function fails if the package is not installed, but here we wrap it in a
-try-catch as we may want to test another package after the one that isn't installed.
-
-For Julia versions V1.4 and later, the first arguments of the Pkg functions used
-is of type `Pkg.Types.Context`. For earlier versions, they are of type
-`Pkg.Types.EnvCache`.
-"""
-function isinstalled!(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
-    @static if v"1.4.0" <= VERSION < v"1.7.0"
-        var = ctx
-    else
-        var = ctx.env
-    end
-    @static if VERSION >= v"1.7.0"
-        manifest_var = ctx.env.manifest
-    else
-        manifest_var = var
-    end
-    project_resolve!(var, [pkgspec])
-    project_deps_resolve!(var, [pkgspec])
-    manifest_resolve!(manifest_var, [pkgspec])
-    try
-        @static if VERSION >= v"1.8.0"
-            ensure_resolved(ctx, manifest_var, [pkgspec])
-        else
-            ensure_resolved(manifest_var, [pkgspec])
-        end
-    catch err
-        err isa MethodError && rethrow()
-        return false
-    end
-    return true
-end
-
-"""
-    gettestfilepath(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
-
-Gets the testfile path of the package. Code for each Julia version mirrors that found 
-in `Pkg/src/Operations.jl`.
-"""
-function gettestfilepath(ctx::Context, pkgspec::Pkg.Types.PackageSpec)
-    @static if VERSION >= v"1.7.0"
-        if is_project_uuid(ctx.env, pkgspec.uuid)
-            pkgspec.path = dirname(ctx.env.project_file)
-            pkgspec.version = ctx.env.pkg.version
-        else !Pkg.Operations.is_stdlib(pkgspec.uuid)
-            entry = manifest_info(ctx.env.manifest, pkgspec.uuid)
-            pkgspec.version = entry.version
-            pkgspec.tree_hash = entry.tree_hash
-            pkgspec.repo = entry.repo
-            pkgspec.path = entry.path
-            pkgspec.pinned = entry.pinned
-            if isnothing(pkgspec.path)
-                pkgspec.path = source_path(ctx.env.project_file, pkgspec, ctx.julia_version)
-            end
-        end
-        pkgfilepath = source_path(ctx.env.project_file, pkgspec, ctx.julia_version)
-    elseif VERSION >= v"1.4.0"
-        if is_project_uuid(ctx, pkgspec.uuid)
-            pkgspec.path = dirname(ctx.env.project_file)
-            pkgspec.version = ctx.env.pkg.version
-        else
-            update_package_test!(pkgspec, manifest_info(ctx, pkgspec.uuid))
-            pkgspec.path = project_rel_path(ctx, source_path(ctx, pkgspec))
-        end
-        pkgfilepath = source_path(ctx, pkgspec)
-    elseif VERSION >= v"1.2.0"
-        pkgspec.special_action = Pkg.Types.PKGSPEC_TESTED
-        if is_project_uuid(ctx.env, pkgspec.uuid)
-            pkgspec.path = dirname(ctx.env.project_file)
-            pkgspec.version = ctx.env.pkg.version
-        else
-            update_package_test!(pkgspec, manifest_info(ctx.env, pkgspec.uuid))
-            pkgspec.path = joinpath(project_rel_path(ctx, source_path(pkgspec)))
-        end
-        pkgfilepath = project_rel_path(ctx, source_path(pkgspec))
-    elseif VERSION >= v"1.1.0"
-        pkgspec.special_action = Pkg.Types.PKGSPEC_TESTED
-        if is_project_uuid(ctx.env, pkgspec.uuid)
-            pkgspec.version = ctx.env.pkg.version
-            pkgfilepath = dirname(ctx.env.project_file)
-        else
-            entry = manifest_info(ctx.env, pkg.uuid)
-            if entry.repo.tree_sha !== nothing
-                pkgfilepath = find_installed(pkgspec.name, pkgspec.uuid, entry.repo.tree_sha)
-            elseif entry.path !== nothing
-                pkgfilepath =  project_rel_path(ctx, entry.path)
-            elseif pkgspec.uuid in keys(ctx.stdlibs)
-                pkgfilepath = Pkg.Types.stdlib_path(pkgspec.name)
-            else
-                throw(PkgTestError("Could not find either `git-tree-sha1` or `path` for package $(pkgspec.name)"))
-            end
-        end
-    else
-        pkgspec.special_action = Pkg.Types.PKGSPEC_TESTED
-        if is_project_uuid(ctx.env, pkgspec.uuid)
-            pkgspec.version = ctx.env.pkg.version
-            pkgfilepath = dirname(ctx.env.project_file)
-        else        
-            info = manifest_info(ctx.env, pkgspec.uuid)
-            if haskey(info, "git-tree-sha1")
-                pkgfilepath = find_installed(pkgspec.name, pkgspec.uuid, SHA1(info["git-tree-sha1"]))
-            elseif haskey(info, "path")
-                pkgfilepath =  project_rel_path(ctx, info["path"])
-            elseif pkgspec.uuid in keys(ctx.stdlibs)
-                pkgfilepath = Pkg.Types.stdlib_path(pkgspec.name)
-            else
-                throw(PkgTestError("Could not find either `git-tree-sha1` or `path` for package $(pkgspec.name)"))
-            end
-        end
-        pkgspec.path = pkgfilepath
-    end
-    testfilepath = joinpath(pkgfilepath, "test", "runtests.jl")
-    return testfilepath
-end
-
 test_project_filepath(testfilepath) = joinpath(dirname(testfilepath), "Project.toml")
 has_test_project_file(testfilepath) = isfile(test_project_filepath(testfilepath))
 
@@ -375,16 +255,17 @@ function test!(pkg::AbstractString,
     # Copied from Pkg.test approach
     julia_args = Cmd(julia_args)
     test_args = Cmd(test_args)
-    pkgspec = deepcopy(PackageSpec(pkg))
-    ctx = Context()
-    
-    if !isinstalled!(ctx, pkgspec)
-        push!(nopkgs, pkgspec.name)
-        return
-    end
-    Pkg.instantiate(ctx)
-    testfilepath = gettestfilepath(ctx, pkgspec)
-
+    ctx, pkgspec = try
+        TestEnv.ctx_and_pkgspec(pkg)  # TODO: Don't use TestEnv internals  
+    catch err
+        if err isa TestEnv.TestEnvError
+            push!(nopkgs, pkg)
+            return
+        else
+            rethrow()
+        end
+    end 
+    testfilepath = joinpath(TestEnv.get_test_dir(ctx, pkgspec), "runtests.jl")
     check_testreports_compatability(ctx, pkgspec, testfilepath)
 
     if !isfile(testfilepath)
@@ -392,43 +273,8 @@ function test!(pkg::AbstractString,
     else
         runner_code = gen_runner_code(testfilepath, logfilename, test_args)
         cmd = gen_command(runner_code, julia_args, coverage)
-        test_folder_has_project_file = has_test_project_file(testfilepath)
-
-        if VERSION >= v"1.4" || (VERSION >= v"1.2" && test_folder_has_project_file)
-            # Operations.sandbox() has different arguments between versions
-            test_project_override = if VERSION >= v"1.4" && !test_folder_has_project_file
-                if VERSION >= v"1.8"
-                    gen_target_project(ctx, pkgspec, pkgspec.path::String, "test")
-                elseif VERSION >= v"1.7"
-                    gen_target_project(ctx.env, ctx.registries, pkgspec, pkgspec.path, "test")
-                else
-                    gen_target_project(ctx, pkgspec, pkgspec.path, "test")
-                end
-            else
-                nothing
-            end
-
-            sandbox_args = if VERSION >= v"1.11-"
-                (ctx, pkgspec, joinpath(pkgspec.path, "test"), test_project_override)
-            elseif VERSION >= v"1.4"
-                (ctx, pkgspec, pkgspec.path, joinpath(pkgspec.path, "test"), test_project_override)
-            else
-                (ctx, pkgspec, pkgspec.path, joinpath(pkgspec.path, "test"))
-            end
-
-            sandbox(sandbox_args...) do
-                flush(stdout)
-                runtests!(errs, pkg, cmd, logfilename)
-            end
-        else
-            with_dependencies_loadable_at_toplevel(ctx, pkgspec; might_need_to_resolve=true) do localctx
-                Pkg.activate(localctx.env.project_file)
-                try
-                    runtests!(errs, pkg, cmd, logfilename)
-                finally
-                    Pkg.activate(ctx.env.project_file)
-                end
-            end
+        TestEnv.activate(pkg) do
+            runtests!(errs, pkg, cmd, logfilename)
         end
     end
 end
@@ -456,7 +302,7 @@ If `logfilename` is supplied, it must match the type (and length, if a vector) o
 The tests are run in the same way as `Pkg.test`.
 """
 function test(; kwargs...)
-    ctx = Context()
+    ctx = Pkg.Types.Context()
     # This error mirrors the message generated by Pkg.test in similar situations
     ctx.env.pkg === nothing && throw(PkgTestError("trying to test an unnamed project"))
     test(ctx.env.pkg.name; kwargs...)
