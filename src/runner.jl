@@ -256,7 +256,7 @@ function test!(pkg::AbstractString,
     julia_args = Cmd(julia_args)
     test_args = Cmd(test_args)
     ctx, pkgspec = try
-        TestEnv.ctx_and_pkgspec(pkg)
+        TestEnv.ctx_and_pkgspec(pkg)  # TODO: Don't use TestEnv internals  
     catch err
         if err isa TestEnv.TestEnvError
             push!(nopkgs, pkg)
