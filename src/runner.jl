@@ -78,33 +78,41 @@ from the parsed `manifest` provided.
 function make_testreports_environment(manifest)
     all_deps = get_deps(manifest, "TestReports")
     push!(all_deps, "TestReports")
+    
+    testreportsenv = mktempdir()
+    
+    # Create project with Test and TestReports dependencies
+    proj = Pkg.Types.Project()
+    if VERSION >= v"1.7.0"
+        test_uuid = manifest["deps"]["Test"][1]["uuid"]
+        testreports_uuid = manifest["deps"]["TestReports"][1]["uuid"]
+    else
+        test_uuid = manifest["Test"][1]["uuid"]
+        testreports_uuid = manifest["TestReports"][1]["uuid"]
+    end
+    proj.deps = Dict(
+        "Test" => Base.UUID(test_uuid),
+        "TestReports" => Base.UUID(testreports_uuid)
+    )
+    
+    # Write project file
+    Pkg.Types.write_project(proj, joinpath(testreportsenv, "Project.toml"))
+    
+    # Create manifest with all dependencies
     if VERSION >= v"1.7.0"
         new_manifest = Dict{String, Any}()
         new_manifest["deps"] = Dict(pkg => manifest["deps"][pkg] for pkg in all_deps)
         new_manifest["julia_version"] = manifest["julia_version"]
         new_manifest["manifest_format"] = manifest["manifest_format"]
-        new_project = Dict(
-            "deps" => Dict(
-                "Test" => new_manifest["deps"]["Test"][1]["uuid"],
-                "TestReports" => new_manifest["deps"]["TestReports"][1]["uuid"]
-            )
-        )
     else
         new_manifest = Dict(pkg => manifest[pkg] for pkg in all_deps)
-        new_project = Dict(
-            "deps" => Dict(
-                "Test" => new_manifest["Test"][1]["uuid"],
-                "TestReports" => new_manifest["TestReports"][1]["uuid"]
-            )
-        )
     end
-    testreportsenv = mktempdir()
-    open(joinpath(testreportsenv, "Project.toml"), "w") do io
-        Pkg.TOML.print(io, new_project)
-    end
+    
+    # Write manifest file
     open(joinpath(testreportsenv, "Manifest.toml"), "w") do io
         Pkg.TOML.print(io, new_manifest, sorted=true)
     end
+    
     return testreportsenv
 end
 
