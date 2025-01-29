@@ -98,6 +98,12 @@ function make_testreports_environment(manifest)
             )
         )
     end
+
+    if VERSION >= v"1.11.0"
+        # add REPL to Pkg weakdepends (https://github.com/JuliaTesting/TestReports.jl/issues/121#issuecomment-2413243321)
+        new_manifest["deps"]["Pkg"][1]["weakdeps"] = Dict{String,Any}("REPL" => "3fa0cd96-eef1-5676-8a61-b3b8758bbffb")
+    end
+
     testreportsenv = mktempdir()
     open(joinpath(testreportsenv, "Project.toml"), "w") do io
         Pkg.TOML.print(io, new_project)
