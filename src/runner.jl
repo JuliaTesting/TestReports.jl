@@ -240,6 +240,7 @@ end
           notests::Vector{AbstractString},
           logfilename::AbstractString;
           coverage::Bool=false,
+          allow_reresolve::Bool=true,
           julia_args::Union{Cmd, AbstractVector{<:AbstractString}}=``,
           test_args::Union{Cmd, AbstractVector{<:AbstractString}}=``)
 
@@ -255,14 +256,24 @@ function test!(pkg::AbstractString,
                notests::Vector{AbstractString},
                logfilename::AbstractString;
                coverage::Bool=false,
+               allow_reresolve::Union{Bool,Nothing}=nothing,
                julia_args::Union{Cmd, AbstractVector{<:AbstractString}}=``,
                test_args::Union{Cmd, AbstractVector{<:AbstractString}}=``)
+
+    # allow_reresolve is only supported in v1.9+, so we need to bail out if it's set to any
+    # non-default value on an earlier version.
+    if allow_reresolve !== nothing
+        VERSION < v"1.9" && throw(ArgumentError("allow_reresolve requires at least Julia 1.9"))
+        testenv_kwargs = (; allow_reresolve)
+    else
+        testenv_kwargs = (;)
+    end
 
     # Copied from Pkg.test approach
     julia_args = Cmd(julia_args)
     test_args = Cmd(test_args)
     ctx, pkgspec = try
-        TestEnv.ctx_and_pkgspec(pkg)  # TODO: Don't use TestEnv internals  
+        TestEnv.ctx_and_pkgspec(pkg)  # TODO: Don't use TestEnv internals
     catch err
         if err isa TestEnv.TestEnvError
             push!(nopkgs, pkg)
@@ -270,7 +281,7 @@ function test!(pkg::AbstractString,
         else
             rethrow()
         end
-    end 
+    end
     testfilepath = joinpath(TestEnv.get_test_dir(ctx, pkgspec), "runtests.jl")
     check_testreports_compatability(ctx, pkgspec, testfilepath)
 
@@ -279,7 +290,7 @@ function test!(pkg::AbstractString,
     else
         runner_code = gen_runner_code(testfilepath, logfilename, test_args)
         cmd = gen_command(runner_code, julia_args, coverage)
-        TestEnv.activate(pkg) do
+        TestEnv.activate(pkg; testenv_kwargs...) do
             runtests!(errs, pkg, cmd, logfilename)
         end
     end
