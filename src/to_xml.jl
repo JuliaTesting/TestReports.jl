@@ -251,6 +251,20 @@ function to_xml(v::Error)
     x_testcase, ntest, 0, 1  # Increment number of errors by 1
 end
 
+function to_xml(v::Result)
+    # Generic fallback, that hopefully works for any user-defined failure types.
+    # if not they need to implement this in an extension package
+    if occursin("Fail", string(typeof(v)))
+        # This works for TestLogFailure and JETTestFailure
+        # and is based on:
+        # https://github.com/aviatesk/JET.jl/blob/8f2ecffc3bef6c556b2617458f031d29f1a00a4b/src/JETBase.jl#L1439-L1440
+        # https://github.com/JuliaLang/julia/blob/5d3ab49433e14fae9e64f1a5001a06cbf53fa7f0/stdlib/Test/src/logging.jl#L169-L170
+        return to_xml(Fail(:test, v.orig_expr, v, nothing, v.source))
+    else
+        throw(MethodError(to_xml, (v,)))
+    end
+end
+
 to_xml(v::ReportingResult) = to_xml(v.result)
 
 """
