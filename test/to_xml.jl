@@ -69,7 +69,3 @@ end
     @test node.name == "testcase"
     
 end
-
-function record(ts::DefaultTestSet, t::LogTestFailure)
-
-end
