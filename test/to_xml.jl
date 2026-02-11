@@ -57,4 +57,15 @@ end
     result = Error(:test_nonbool, :orig_expr, nothing, nothing, LineNumberNode(1))
     node, _, _, _ = TestReports.to_xml(result)
     @test node.name == "testcase"
+
+
+    struct WeirdFailure <: Result
+        orig_expr
+        source::LineNumberNode
+        some_nonsense
+    end
+    result = WeirdFailure(:orig_expr, LineNumberNode(1), 3.1415)
+    node, _, _, _ = TestReports.to_xml(result)
+    @test node.name == "testcase"
+    
 end
