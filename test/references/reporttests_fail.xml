@@ -4,8 +4,7 @@
     <testcase name="ARGS == []" id="1" classname="reporttest" time="0.0">
       <failure message="[&quot;foo&quot;, &quot;-e&quot;, &quot;bar&quot;] == Any[]" type="test">Test Failed
   Expression: ARGS == []
-   Evaluated: ["foo", "-e", "bar"] == Any[]
-</failure>
+   Evaluated: ["foo", "-e", "bar"] == Any[]</failure>
     </testcase>
   </testsuite>
 </testsuites>

@@ -5,8 +5,7 @@
     <testcase name="sqrt(20) == 5" id="2" classname="Math" time="0.0">
       <failure message="4.47213595499958 == 5" type="test">Test Failed
   Expression: sqrt(20) == 5
-   Evaluated: 4.47213595499958 == 5
-</failure>
+   Evaluated: 4.47213595499958 == 5</failure>
     </testcase>
     <testcase name="16 == 16" id="3" classname="Math" time="0.0"/>
   </testsuite>
@@ -15,8 +14,7 @@
     <testcase name="1 * 2 == 5" id="2" classname="Math/Multiplication" time="0.0">
       <failure message="2 == 5" type="test">Test Failed
   Expression: 1 * 2 == 5
-   Evaluated: 2 == 5
-</failure>
+   Evaluated: 2 == 5</failure>
     </testcase>
     <testcase name="1 * 4 == 4" id="3" classname="Math/Multiplication" time="0.0"/>
   </testsuite>
@@ -25,8 +23,7 @@
     <testcase name="1 + 2 == 5" id="2" classname="Math/addition" time="0.0">
       <failure message="3 == 5" type="test">Test Failed
   Expression: 1 + 2 == 5
-   Evaluated: 3 == 5
-</failure>
+   Evaluated: 3 == 5</failure>
     </testcase>
     <testcase name="1 + 4 == 5" id="3" classname="Math/addition" time="0.0"/>
   </testsuite>
@@ -35,8 +32,7 @@
     <testcase name="1 + -2 == 1" id="2" classname="Math/addition/negative addition" time="0.0">
       <failure message="-1 == 1" type="test">Test Failed
   Expression: 1 + -2 == 1
-   Evaluated: -1 == 1
-</failure>
+   Evaluated: -1 == 1</failure>
     </testcase>
     <testcase name="10 + -5 == 5" id="3" classname="Math/addition/negative addition" time="0.0"/>
   </testsuite>
@@ -74,8 +70,7 @@
       <failure message="No exception thrown" type="test_throws_nothing">Test Failed
   Expression: true
     Expected: DimensionMismatch
-  No exception thrown
-</failure>
+  No exception thrown</failure>
     </testcase>
   </testsuite>
   <testsuite name="Math/using function from a module" tests="1" failures="0" errors="0" time="0.0" timestamp="0" hostname="localhost" id="7">

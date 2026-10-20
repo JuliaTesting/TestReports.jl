@@ -209,7 +209,7 @@ Sets the time taken field of a `ReportingTestSet`. This is used when flattening
 """
 set_time_taken!(ts::ReportingTestSet, time_taken::Millisecond) = ts.time_taken = time_taken
 set_time_taken!(ts::AbstractTestSet, time_taken::Millisecond) = nothing
-VERSION >= v"1.8" && function set_time_taken!(ts::DefaultTestSet, time_taken::Millisecond) 
+v"1.8" <= VERSION < v"1.13" && function set_time_taken!(ts::DefaultTestSet, time_taken::Millisecond)
     ts.time_start = 0
     ts.time_end = time_taken.value / 1000
     return ts
@@ -374,7 +374,7 @@ function display_reporting_testset(ts::ReportingTestSet)
             if r isa DefaultTestSet
                 # finish sets `time_end=time()` for r. Previously we have set time_start to 0 and time_end to
                 # the time taken, so this is a way of ensuring the correct time is displayed
-                @static if VERSION >= v"1.8"
+                @static if v"1.8" <= VERSION < v"1.13"
                     r.time_start = time() - r.time_end
                 end
                 finish(r)
