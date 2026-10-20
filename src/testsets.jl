@@ -373,7 +373,8 @@ function display_reporting_testset(ts::ReportingTestSet)
         for r in ts_default.results
             if r isa DefaultTestSet
                 # finish sets `time_end=time()` for r. Previously we have set time_start to 0 and time_end to
-                # the time taken, so this is a way of ensuring the correct time is displayed
+                # the time taken, so this is a way of ensuring the correct time is displayed. On 1.13+
+                # `time_start` is `const` and is instead back-dated in `add_to_ts_default!`
                 @static if v"1.8" <= VERSION < v"1.13"
                     r.time_start = time() - r.time_end
                 end
@@ -404,7 +405,11 @@ add_to_ts_default!(ts_default::DefaultTestSet, result::ReportingResult) = add_to
 add_to_ts_default!(ts_default::DefaultTestSet, result::Result) = record(ts_default, result)
 add_to_ts_default!(ts_default::DefaultTestSet, ts::AbstractTestSet) = record(ts_default, ts)
 function add_to_ts_default!(ts_default::DefaultTestSet, ts::ReportingTestSet)
-    if VERSION >= v"1.8.0"
+    if VERSION >= v"1.13"
+        # `time_start` is `const` on 1.13, so back-date it at construction instead
+        time_start = time() - Dates.value(ts.time_taken) / 1000
+        sub_ts = DefaultTestSet(ts.description; showtiming=ts.showtiming, verbose=ts.verbose, time_start)
+    elseif VERSION >= v"1.8.0"
         sub_ts = DefaultTestSet(ts.description, showtiming=ts.showtiming, verbose=ts.verbose)
         set_time_taken!(sub_ts, ts.time_taken)
     else
