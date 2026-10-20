@@ -133,6 +133,22 @@ end
     # Test for custom testsets (Issue #36)
     TestReports.add_to_ts_default!(ts_default, TestReportingTestSet(""))
     @test ts_default.results[end] isa TestReportingTestSet
+
+    # Displayed duration of a sub-testset reflects its `time_taken`, not display overhead
+    if VERSION >= v"1.8"
+        ts_outer = ReportingTestSet("outer")
+        ts_inner = ReportingTestSet("inner")
+        Test.record(ts_inner, Test.Pass(:null, nothing, nothing, nothing))
+        ts_inner.time_taken = Millisecond(4300)
+        Test.record(ts_outer, ts_inner)
+        # The finished sub-testset is recorded into the enclosing testset, so capture it there
+        ts_capture = @testset DefaultTestSet "capture" begin
+            TestReports.display_reporting_testset(ts_outer)
+        end
+        ts_displayed = ts_capture.results[end]
+        @test ts_displayed.description == "inner"
+        @test 4.29 <= ts_displayed.time_end - ts_displayed.time_start < 6.0
+    end
 end
 
 @testset "any_problems" begin
